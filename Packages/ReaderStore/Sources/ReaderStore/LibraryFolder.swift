@@ -20,28 +20,30 @@ public struct LibraryFolder: Sendable {
     public func url(for relativePath: String) -> URL { root.appendingPathComponent(relativePath) }
 
     /// Copies a file into the library and returns its relative path and format. A name that exists gets a numeric suffix, never an overwrite.
-    public func importFile(at source: URL) throws -> (relativePath: String, format: BookFormat) {
+    public func importFile(at source: URL, into subfolder: String = "") throws -> (relativePath: String, format: BookFormat) {
         let name = source.lastPathComponent
         guard let format = BookFormat.detect(fileName: name) else { throw LibraryError.unsupported }
         let scoped = source.startAccessingSecurityScopedResource()
         defer { if scoped { source.stopAccessingSecurityScopedResource() } }
         let fm = FileManager.default
-        try fm.createDirectory(at: root, withIntermediateDirectories: true)
-        let target = uniqueURL(for: name)
+        let folder = subfolder.isEmpty ? root : root.appendingPathComponent(subfolder, isDirectory: true)
+        try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        let target = uniqueURL(for: name, in: folder)
         do { try fm.copyItem(at: source, to: target) } catch { throw LibraryError.unreadable }
-        return (target.lastPathComponent, format)
+        let relative = subfolder.isEmpty ? target.lastPathComponent : subfolder + "/" + target.lastPathComponent
+        return (relative, format)
     }
 
-    func uniqueURL(for name: String) -> URL {
+    func uniqueURL(for name: String, in folder: URL) -> URL {
         let fm = FileManager.default
-        var candidate = root.appendingPathComponent(name)
+        var candidate = folder.appendingPathComponent(name)
         guard fm.fileExists(atPath: candidate.path) else { return candidate }
         let base = (name as NSString).deletingPathExtension
         let ext = (name as NSString).pathExtension
         var n = 2
         repeat {
             let next = ext.isEmpty ? "\(base) \(n)" : "\(base) \(n).\(ext)"
-            candidate = root.appendingPathComponent(next)
+            candidate = folder.appendingPathComponent(next)
             n += 1
         } while fm.fileExists(atPath: candidate.path)
         return candidate
