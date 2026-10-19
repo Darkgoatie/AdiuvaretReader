@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import ReaderDesign
 import ReaderStore
+import ReaderFiles
 
 enum SidebarSection: String, CaseIterable, Identifiable {
     case library, files
