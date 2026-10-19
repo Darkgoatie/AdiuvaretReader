@@ -23,9 +23,18 @@ jobs:
       - name: Generate project
         run: xcodegen generate
 
-      - name: Compile iOS
+      - name: Package tests
         run: |
           mkdir -p build
+          cd Packages
+          set +e
+          xcodebuild test -scheme ReaderPackages-Package -destination 'platform=macOS' > ../build/test.log 2>&1
+          STATUS=$?
+          grep -E "✘|error:|Expectation failed|Test run with|TEST (SUCCEEDED|FAILED)" ../build/test.log | cut -c1-300 | head -60
+          exit $STATUS
+
+      - name: Compile iOS
+        run: |
           xcodebuild -project AdiuvaretReader.xcodeproj -scheme AdiuvaretReader -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO build > build/ios.log 2>&1 || { grep -E 'error:' build/ios.log | sort -u | head -20; tail -5 build/ios.log; exit 1; }
           tail -2 build/ios.log

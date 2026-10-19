@@ -4,12 +4,20 @@ options:
   deploymentTarget:
     iOS: "17.0"
     macOS: "14.0"
+packages:
+  ReaderPackages:
+    path: Packages
 targets:
   AdiuvaretReader:
     type: application
     platform: iOS
     supportedDestinations: [iOS, macOS]
     sources: [App]
+    dependencies:
+      - package: ReaderPackages
+        product: ReaderDesign
+      - package: ReaderPackages
+        product: ReaderStore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.halit.adiuvaretreader
