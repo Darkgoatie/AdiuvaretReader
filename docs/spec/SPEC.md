@@ -23,12 +23,14 @@ SwiftUI, Swift 6, iOS 17 / macOS 14 minimum, one multiplatform target. Bundle ID
 - New repo and folder, design tokens copied, not linked: independent releases.
 - Wallpapers copied from Adiuvaret as of 2026-10-19 (13 Pexels scenes, 1440x2560, about 5 MB), credits file kept with them.
 - Partial file manager = full control of the app library (folders, rename, move, copy, delete with Recently Deleted, search, usage) plus import from and export to the system Files app and user-granted external folders.
+- Own apps share files through an App Group (group.com.halit.shared) with the same team: iOS gives no other way to read another app's sandbox. Needs the group added to both apps' App IDs in the Apple developer account; cloud signing key must cover it. Apps not in the group (other developers' apps) stay out of scope.
 - One multiplatform SwiftUI target (iOS, iPadOS, macOS).
 - EPUB parsed in-app (ZIP + XML), rendered in WKWebView with injected CSS; PDF via PDFKit.
 - Assistant uses the Adiuvaret provider approach, Apple Foundation Models first.
 
 ## Open questions
 - [ ] Should wallpaper show behind reading text? Planned: no, readability; reading uses paper, sepia or dark themes only (owner: user)
+- [ ] Which of your apps join the group besides Adiuvaret (Keply, KeyFolio, Arztalep)? (owner: user)
 - [ ] Confirm core model (owner: user)
 - [ ] EPUB renderer: WKWebView + CSS (planned) vs a third-party toolkit; decided by spike task 2 (owner: agent)
 - [ ] Share ModelLibrary with Adiuvaret as a package later? (owner: user)

@@ -1,9 +1,9 @@
 # Module: ReaderFiles
 
 ## Responsibility
-The library folder tree on disk: list, create folder, rename, move, copy, delete to Recently Deleted, restore, search by name, sizes, rescan, security-scoped bookmarks for user-granted external folders.
+The library folder tree on disk: list, create folder, rename, move, copy, delete to Recently Deleted, restore, search by name, sizes, rescan, security-scoped bookmarks for user-granted external folders, and the shared App Group root.
 
-Does NOT: parse book formats, hold annotations (ReaderStore), render UI, use the network, or touch paths outside the library root or a granted bookmark.
+Does NOT: parse book formats, hold annotations (ReaderStore), render UI, use the network, or touch paths outside the library root or a granted bookmark or the App Group root.
 
 ## Public interface
 | Name | Signature | Errors |
