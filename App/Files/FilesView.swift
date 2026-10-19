@@ -122,6 +122,7 @@ struct FolderView: View {
     @State private var error: String?
     @State private var usage = ""
     @State private var selecting = false
+    @State private var confirmDelete = false
 
     private var store: FileStore? { route.source == .library ? Services.files : Services.shared }
     private var title: String {
@@ -139,7 +140,7 @@ struct FolderView: View {
         .onChange(of: query) { _, q in results = store?.search(q) ?? [] }
         .onChange(of: sort) { _, _ in reload() }
         .toolbar { toolbar }
-        .safeAreaInset(edge: .bottom) { if selecting && !selection.isEmpty { selectionBar } }
+        .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }
         .onAppear(perform: reload)
         .fileImporter(isPresented: $importing, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in
             guard case .success(let urls) = result, let store else { return }
@@ -264,17 +265,25 @@ struct FolderView: View {
     }
 
     private var selectionBar: some View {
-        HStack {
-            Button("Move") { copying = false; moving = pickedItems }
-            Button("Copy") { copying = true; moving = pickedItems }
-            Spacer()
-            Text("\(selection.count) selected").font(DS.Typography.caption).foregroundStyle(DS.Colors.textSecondary)
-            Spacer()
-            Button("Delete", role: .destructive) { trash(pickedItems) }
+        let picked = pickedItems
+        let urls = picked.filter { !$0.isDirectory }.compactMap { try? store?.resolve($0.relativePath) }
+        return HStack(spacing: Spacing.s) {
+            Button("Move") { copying = false; moving = picked }
+            Button("Copy") { copying = true; moving = picked }
+            if !urls.isEmpty { ShareLink(items: urls) { Image(systemName: "square.and.arrow.up") }.accessibilityLabel("Share") }
+            Spacer(minLength: 0)
+            Text(picked.isEmpty ? "Select items" : "\(picked.count) selected").font(DS.Typography.caption).foregroundStyle(DS.Colors.textSecondary)
+            Spacer(minLength: 0)
+            Button("Delete", role: .destructive) { if picked.count > 1 { confirmDelete = true } else { trash(picked) } }
         }
         .buttonStyle(.bordered)
+        .disabled(picked.isEmpty)
         .padding(Spacing.m)
         .background(.bar)
+        .confirmationDialog("Delete \(picked.count) items?", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("Move to Recently Deleted", role: .destructive) { trash(picked) }
+            Button("Cancel", role: .cancel) {}
+        } message: { Text("Folders go with everything in them. You can restore them from Recently Deleted.") }
     }
 
     private var pickedItems: [FileItem] { shown.filter { selection.contains($0.relativePath) } }
@@ -291,6 +300,11 @@ struct FolderView: View {
 
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
         ToolbarItemGroup(placement: .primaryAction) {
+            if selecting {
+                Button { selection = selection.count == shown.count ? [] : Set(shown.map(\.relativePath)) } label: {
+                    Text(selection.count == shown.count && !shown.isEmpty ? "Select none" : "Select all")
+                }
+            }
             Button { selecting.toggle(); selection = [] } label: { Text(selecting ? "Done" : "Select") }
             Menu {
                 Button { importing = true } label: { Label("Add files", systemImage: "doc.badge.plus") }

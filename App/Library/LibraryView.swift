@@ -29,6 +29,9 @@ struct LibraryView: View {
     @State private var renaming: Book?
     @State private var renameText = ""
     @State private var undo: UndoDelete?
+    @State private var selecting = false
+    @State private var picked = Set<UUID>()
+    @State private var confirmDelete = false
     @AppStorage("library.grid") private var grid = true
     @Environment(\.horizontalSizeClass) private var sizeClass
 
@@ -42,6 +45,19 @@ struct LibraryView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button { importing = true } label: { Label("Add files", systemImage: "plus") }
+                    .disabled(selecting)
+            }
+            if !books.isEmpty {
+                ToolbarItem(placement: .secondaryAction) {
+                    Button { selecting.toggle(); picked = [] } label: { Label(selecting ? "Done" : "Select", systemImage: selecting ? "xmark.circle" : "checkmark.circle") }
+                }
+            }
+            if selecting {
+                ToolbarItem(placement: .secondaryAction) {
+                    Button { picked = picked.count == shown.count ? [] : Set(shown.map(\.id)) } label: {
+                        Label(picked.count == shown.count && !shown.isEmpty ? "Select none" : "Select all", systemImage: "checklist")
+                    }
+                }
             }
             ToolbarItem(placement: .secondaryAction) {
                 Menu {
@@ -60,6 +76,7 @@ struct LibraryView: View {
         }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.item], allowsMultipleSelection: true) { handle($0) }
         .sheet(isPresented: $showSettings) { SettingsView() }
+        .safeAreaInset(edge: .bottom) { if selecting { selectionBar } }
         .overlay(alignment: .bottom) { undoBanner }
         .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
             TextField("Name", text: $renameText)
@@ -110,11 +127,11 @@ struct LibraryView: View {
     private var listView: some View {
         List {
             ForEach(shown) { book in
-                Button { open(book) } label: { BookRow(book: book) }
+                Button { tap(book) } label: { BookRow(book: book).overlay(alignment: .trailing) { check(book) } }
                     .buttonStyle(.plain)
                     .listRowBackground(DS.Colors.surface.opacity(0.92))
                     .contextMenu { menu(book) }
-                    .swipeActions { Button("Delete", role: .destructive) { remove(book) } }
+                    .swipeActions { if !selecting { Button("Delete", role: .destructive) { remove(book) } } }
             }
         }
         .scrollContentBackground(.hidden)
@@ -124,13 +141,63 @@ struct LibraryView: View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 200), spacing: Spacing.l)], spacing: Spacing.l) {
                 ForEach(shown) { book in
-                    Button { open(book) } label: { BookTile(book: book) }
+                    Button { tap(book) } label: { BookTile(book: book).overlay(alignment: .topTrailing) { check(book).padding(Spacing.s) } }
                         .buttonStyle(.plain)
                         .contextMenu { menu(book) }
                 }
             }
             .padding(Spacing.l)
         }
+    }
+
+    private func tap(_ book: Book) {
+        guard selecting else { open(book); return }
+        if picked.contains(book.id) { picked.remove(book.id) } else { picked.insert(book.id) }
+    }
+
+    @ViewBuilder private func check(_ book: Book) -> some View {
+        if selecting {
+            Image(systemName: picked.contains(book.id) ? "checkmark.circle.fill" : "circle")
+                .font(.title3)
+                .foregroundStyle(picked.contains(book.id) ? DS.Colors.accent : DS.Colors.textSecondary)
+                .background(Circle().fill(DS.Colors.surface).padding(2))
+                .accessibilityLabel(picked.contains(book.id) ? "Selected" : "Not selected")
+        }
+    }
+
+    private var pickedBooks: [Book] { shown.filter { picked.contains($0.id) } }
+
+    private var selectionBar: some View {
+        let chosen = pickedBooks
+        let allFav = !chosen.isEmpty && chosen.allSatisfy(\.isFavorite)
+        let allRead = !chosen.isEmpty && chosen.allSatisfy { $0.progress >= 0.98 }
+        let urls = chosen.compactMap { Services.url(for: $0) }
+        return HStack(spacing: Spacing.s) {
+            Button { chosen.forEach { $0.isFavorite = !allFav }; try? context.save() } label: { Image(systemName: allFav ? "star.slash" : "star") }
+                .accessibilityLabel(allFav ? "Remove from favorites" : "Add to favorites")
+            Button {
+                chosen.forEach { $0.progress = allRead ? 0 : 1; if allRead { $0.locator = nil } }
+                try? context.save()
+            } label: { Image(systemName: allRead ? "circle" : "checkmark.circle") }
+                .accessibilityLabel(allRead ? "Mark as unread" : "Mark as read")
+            if !urls.isEmpty { ShareLink(items: urls) { Image(systemName: "square.and.arrow.up") }.accessibilityLabel("Share") }
+            Spacer(minLength: 0)
+            Text(chosen.isEmpty ? "Select books" : "\(chosen.count) selected").font(DS.Typography.caption).foregroundStyle(DS.Colors.textSecondary)
+            Spacer(minLength: 0)
+            Button(role: .destructive) { confirmDelete = true } label: { Image(systemName: "trash") }.accessibilityLabel("Delete")
+        }
+        .buttonStyle(.bordered)
+        .disabled(chosen.isEmpty)
+        .padding(Spacing.m)
+        .background(.bar)
+        .confirmationDialog("Delete \(chosen.count) \(chosen.count == 1 ? "book" : "books")?", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("Move to Recently Deleted", role: .destructive) {
+                chosen.forEach { remove($0, announce: false) }
+                picked = []
+                selecting = false
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { Text("You can restore them from Files, Recently Deleted.") }
     }
 
     @ViewBuilder private func menu(_ book: Book) -> some View {
@@ -209,14 +276,14 @@ struct LibraryView: View {
     }
 
     /// Moves the file to Recently Deleted. The record stays, marked missing, so a restore brings back progress and notes.
-    private func remove(_ book: Book) {
+    private func remove(_ book: Book, announce: Bool = true) {
         let store = book.isShared ? Services.shared : Services.files
         let before = Set(store?.recentlyDeleted().map(\.id) ?? [])
         if (try? store?.trash(book.relativePath)) != nil || !FileManager.default.fileExists(atPath: Services.url(for: book)?.path ?? "") {
             book.isMissing = true
             WebAssets.removeCache(for: book.id)
             try? context.save()
-            if let trashed = store?.recentlyDeleted().first(where: { !before.contains($0.id) }) {
+            if announce, let trashed = store?.recentlyDeleted().first(where: { !before.contains($0.id) }) {
                 let item = UndoDelete(book: book, title: book.title, trashID: trashed.id, shared: book.isShared)
                 undo = item
                 Task {
