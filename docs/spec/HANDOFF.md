@@ -1,3 +1,3 @@
 # Handoff
-State: spec drafted (now incl. wallpapers task 14 and file management tasks 15-19 (19 = App Group sharing with own apps)), nothing implemented. Waiting for user to confirm core model and task list.
-Next: task 1 after approval.
+State: spec approved by user. Task 1 written (project.yml, App/ placeholder library screen, .github/workflows/compile.yml); nothing compiled and no GitHub repo created yet.
+Next: on "build", create Darkgoatie/AdiuvaretReader, push, run compile.yml; then task 2 spike.

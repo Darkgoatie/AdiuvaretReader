@@ -4,7 +4,7 @@ Status: pending | in progress | done | needs-fix | reverted
 
 | # | Task | Module | Files | Depends | Acceptance check | Status |
 |---|---|---|---|---|---|---|
-| 1 | Scaffold: project.yml, multiplatform target, compile-only GitHub workflow | app | project.yml, App/, .github/ | - | Actions run compiles iOS and macOS | pending |
+| 1 | Scaffold: project.yml, multiplatform target, compile-only GitHub workflow | app | project.yml, App/, .github/ | - | Actions run compiles iOS and macOS | written, not compiled; run waits for "build" |
 | 2 | Spike: EPUB in WKWebView with injected CSS, selection callback | ReaderFormats | spikes/ | 1 | Selecting text delivers the string | pending |
 | 3 | ReaderDesign: copy tokens, fonts, theme; contrast tests incl. sepia | ReaderDesign | Packages/ReaderDesign | 1 | ContrastTests pass 4.5:1 in 3 themes | pending |
 | 4 | SwiftData models and import of EPUB, PDF, txt | ReaderStore | Packages/ReaderStore | 1 | Unit test imports 3 sample files | pending |

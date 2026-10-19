@@ -1,0 +1,37 @@
+name: Compile
+
+on:
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 27
+        run: |
+          X=/Applications/Xcode_27.0.app
+          [ -d "$X" ] || { echo "Xcode 27.0 not found"; exit 1; }
+          sudo xcode-select -s "$X/Contents/Developer"
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Compile iOS
+        run: |
+          mkdir -p build
+          xcodebuild -project AdiuvaretReader.xcodeproj -scheme AdiuvaretReader -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO build > build/ios.log 2>&1 || { grep -E 'error:' build/ios.log | sort -u | head -20; tail -5 build/ios.log; exit 1; }
+          tail -2 build/ios.log
+
+      - name: Compile macOS
+        run: |
+          xcodebuild -project AdiuvaretReader.xcodeproj -scheme AdiuvaretReader -destination 'generic/platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO build > build/mac.log 2>&1 || { grep -E 'error:' build/mac.log | sort -u | head -20; tail -5 build/mac.log; exit 1; }
+          tail -2 build/mac.log
