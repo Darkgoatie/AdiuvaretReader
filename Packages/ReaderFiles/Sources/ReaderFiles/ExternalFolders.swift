@@ -121,7 +121,7 @@ extension ExternalFolderStore {
 }
 
 public enum SharedSpace {
-    public static let groupID = "group.com.halit.shared"
+    public static let groupID = "group.com.halit.adiuvaret"
 
     /// The shared folder inside the App Group container, or nil when this build is not signed with the group.
     public static func store(group: String = groupID) -> FileStore? {
