@@ -7,10 +7,13 @@ let package = Package(
     products: [
         .library(name: "ReaderDesign", targets: ["ReaderDesign"]),
         .library(name: "ReaderStore", targets: ["ReaderStore"]),
+        .library(name: "ReaderFormats", targets: ["ReaderFormats"]),
     ],
     targets: [
         .target(name: "ReaderDesign", path: "ReaderDesign/Sources/ReaderDesign", resources: [.copy("Resources/Fonts")]),
         .target(name: "ReaderStore", path: "ReaderStore/Sources/ReaderStore"),
+        .target(name: "ReaderFormats", path: "ReaderFormats/Sources/ReaderFormats"),
+        .testTarget(name: "ReaderFormatsTests", dependencies: ["ReaderFormats"], path: "ReaderFormats/Tests/ReaderFormatsTests"),
         .testTarget(name: "ReaderStoreTests", dependencies: ["ReaderStore"], path: "ReaderStore/Tests/ReaderStoreTests"),
         .testTarget(name: "ReaderDesignTests", dependencies: ["ReaderDesign"], path: "ReaderDesign/Tests/ReaderDesignTests"),
     ],
