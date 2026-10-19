@@ -1,12 +1,12 @@
 # Adiuvaret Reader spec
 
-Core model: a private, on-device reader in which the library, progress and annotations are local data and the assistant is a tool that works only on the passage the user is looking at. (awaiting user confirmation)
+Core model: a private, on-device reader in which the library, progress and annotations are local data and the assistant is a tool that works only on the passage the user is looking at. (awaiting user confirmation; files are part of "library", the app's own folder tree)
 
 ## Goal
-EPUB, PDF and text reader for iPhone, iPad and Mac with an on-device assistant, visually matching Adiuvaret.
+EPUB, PDF and text reader for iPhone, iPad and Mac with an on-device assistant, visually matching Adiuvaret. It carries Adiuvaret's wallpaper options (none, 13 bundled scenery photos, gradients, patterns, solid colour, own photo) and acts as a partial file manager for the user's reading files.
 
 ## Non-goals
-Cloud AI, accounts, book store, DRM books, audiobooks, iCloud sync (v1).
+A full file manager: no browsing of other apps' data or the whole device; only the app's own library and folders the user explicitly grants. No cloud AI, accounts, book store, DRM books, audiobooks, iCloud sync (v1).
 
 ## Constraints
 SwiftUI, Swift 6, iOS 17 / macOS 14 minimum, one multiplatform target. Bundle ID com.halit.adiuvaretreader. Builds only via GitHub Actions on user request. Commit after every change, short subject, no body. No emoji, no pill buttons.
@@ -21,11 +21,14 @@ SwiftUI, Swift 6, iOS 17 / macOS 14 minimum, one multiplatform target. Bundle ID
 
 ## Decisions
 - New repo and folder, design tokens copied, not linked: independent releases.
+- Wallpapers copied from Adiuvaret as of 2026-10-19 (13 Pexels scenes, 1440x2560, about 5 MB), credits file kept with them.
+- Partial file manager = full control of the app library (folders, rename, move, copy, delete with Recently Deleted, search, usage) plus import from and export to the system Files app and user-granted external folders.
 - One multiplatform SwiftUI target (iOS, iPadOS, macOS).
 - EPUB parsed in-app (ZIP + XML), rendered in WKWebView with injected CSS; PDF via PDFKit.
 - Assistant uses the Adiuvaret provider approach, Apple Foundation Models first.
 
 ## Open questions
+- [ ] Should wallpaper show behind reading text? Planned: no, readability; reading uses paper, sepia or dark themes only (owner: user)
 - [ ] Confirm core model (owner: user)
 - [ ] EPUB renderer: WKWebView + CSS (planned) vs a third-party toolkit; decided by spike task 2 (owner: agent)
 - [ ] Share ModelLibrary with Adiuvaret as a package later? (owner: user)

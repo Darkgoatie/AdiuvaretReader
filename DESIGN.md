@@ -9,6 +9,12 @@ Direction: inherited from Adiuvaret (plain native Apple UI, warm neutral ground,
 - Rounded rectangles, never pills. Radii 8, 12, 20. Spacing 4, 8, 12, 16, 24.
 - No emoji. Settled states are calm ("Saved", "Removed") instead of vanishing.
 
+## Wallpapers
+Same options as Adiuvaret Settings > Theme > Wallpaper: None (default), Scenery (13 bundled photos with previews and photographer, one random on first launch), Gradient, Pattern, Solid colour, Your photo, plus a dim slider. They sit behind the library, file browser and assistant. The reading surface never has one; it uses its paper, sepia or dark ground so text contrast holds. Settings screens stay solid.
+
+## Files
+Files is a top-level section next to Library: folder list with sizes, breadcrumb, multi-select, swipe and context actions (rename, move, copy, delete, share), search by name, Recently Deleted. System grouped lists, no custom chrome; book files show a progress ring and open in the reader.
+
 ## Typography
 UI: Google Sans Flex for headings, buttons, captions; Google Sans for body. Archivo Black only for the library title. Reading text: user choice among Google Sans, a system serif (New York) and system sans, with size, line spacing and margin controls. All via Font.custom relativeTo text styles so Dynamic Type scales.
 
