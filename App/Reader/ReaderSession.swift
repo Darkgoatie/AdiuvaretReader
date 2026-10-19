@@ -43,6 +43,8 @@ final class ReaderSession {
     var contextProvider: (@MainActor () async -> PassageContext?)?
     var searchProvider: (@MainActor (String) async -> [SearchHit])?
     var hitPosition: ((SearchHit) -> ReadingPosition)?
+    var stepper: ((Int) -> Void)?
+    var clearSelectionHook: (() -> Void)?
 
     @ObservationIgnored private var saveTask: Task<Void, Never>?
 
@@ -66,6 +68,11 @@ final class ReaderSession {
         saveTask = nil
         if let p = position { book.locator = p.encoded }
         book.progress = progress
+    }
+
+    func clearSelection() {
+        selection = ""
+        clearSelectionHook?()
     }
 
     func go(to position: ReadingPosition, find: String? = nil) {

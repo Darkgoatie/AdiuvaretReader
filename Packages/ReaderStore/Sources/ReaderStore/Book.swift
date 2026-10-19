@@ -16,6 +16,8 @@ public final class Book {
     public var locator: String?
     /// True while the file is not in the library folder, for example in Recently Deleted. Progress and notes are kept for a restore.
     public var isMissing: Bool = false
+    /// "library" for the app's own folder, "shared" for the App Group folder shared with the user's other apps.
+    public var storage: String = "library"
 
     public init(title: String, author: String = "", format: BookFormat, relativePath: String) {
         self.title = title
@@ -23,6 +25,8 @@ public final class Book {
         self.formatRaw = format.rawValue
         self.relativePath = relativePath
     }
+
+    public var isShared: Bool { storage == "shared" }
 
     public var format: BookFormat { BookFormat(rawValue: formatRaw) ?? .text }
 }

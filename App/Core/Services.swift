@@ -8,7 +8,12 @@ enum Services {
     static let library = LibraryFolder.standard()
     static let files = FileStore(root: LibraryFolder.standard().root)
     static let externals = ExternalFolderStore()
-    static var shared: FileStore? { SharedSpace.store() }
+    static let shared: FileStore? = SharedSpace.store()
+
+    static func url(for book: Book) -> URL? {
+        if book.isShared { return try? shared?.resolve(book.relativePath) }
+        return try? files.resolve(book.relativePath)
+    }
 }
 
 @MainActor
@@ -17,7 +22,7 @@ enum LibraryService {
     static func sync(_ context: ModelContext) {
         let store = Services.files
         store.purgeExpired()
-        let books = (try? context.fetch(FetchDescriptor<Book>())) ?? []
+        let books = ((try? context.fetch(FetchDescriptor<Book>())) ?? []).filter { !$0.isShared }
         let plan = LibrarySync.plan(
             files: store.allFiles(),
             books: books.map { BookRef(path: $0.relativePath, missing: $0.isMissing) },
@@ -50,15 +55,22 @@ enum LibraryService {
 
     /// Follows a rename or move so progress and notes stay with the file.
     static func rebase(_ context: ModelContext, from old: String, to new: String) {
-        let books = (try? context.fetch(FetchDescriptor<Book>())) ?? []
+        let books = ((try? context.fetch(FetchDescriptor<Book>())) ?? []).filter { !$0.isShared }
         for b in books {
             if let p = LibrarySync.rebase(b.relativePath, from: old, to: new) { b.relativePath = p }
         }
         try? context.save()
     }
 
-    static func book(at path: String, in context: ModelContext) -> Book? {
+    /// The record for a file, made if it does not exist yet. Shared files get a record of their own so progress and notes are kept.
+    static func book(at path: String, shared: Bool, in context: ModelContext) -> Book? {
         let all = (try? context.fetch(FetchDescriptor<Book>())) ?? []
-        return all.first { $0.relativePath == path }
+        if let b = all.first(where: { $0.relativePath == path && $0.isShared == shared }) { return b }
+        guard let format = BookFormat.detect(fileName: path) else { return nil }
+        let title = LibraryFolder.title(fromFileName: (path as NSString).lastPathComponent)
+        let b = Book(title: title, format: format, relativePath: path)
+        b.storage = shared ? "shared" : "library"
+        context.insert(b)
+        return b
     }
 }

@@ -87,11 +87,12 @@ struct WebReaderView: PlatformRepresentable {
             if url.isFileURL {
                 let same = url.deletingFragment().standardizedFileURL == loadedURL?.standardizedFileURL
                 if same { return .allow }
-                return parent.onLink(url) ? .cancel : .cancel
+                _ = parent.onLink(url)
+                return .cancel
             }
             if url.scheme == "http" || url.scheme == "https" {
                 #if canImport(UIKit)
-                await UIApplication.shared.open(url)
+                _ = await UIApplication.shared.open(url)
                 #else
                 NSWorkspace.shared.open(url)
                 #endif

@@ -1,0 +1,48 @@
+import SwiftUI
+import ReaderDesign
+import ReaderStore
+import ReaderFormats
+
+struct WebBookView: View {
+    let model: WebBookModel
+    let annotations: [BookAnnotation]
+    private let prefs = ReaderPreferences.shared
+
+    var body: some View {
+        Group {
+            if let request = model.request {
+                WebReaderView(
+                    request: request,
+                    readAccess: WebAssets.root,
+                    css: css,
+                    ground: prefs.theme.ground.hex,
+                    highlights: highlights,
+                    controller: model.controller,
+                    onSelection: { model.session.selection = $0 },
+                    onScroll: { model.scrolled($0) },
+                    onTap: { _ in model.session.chromeVisible.toggle() },
+                    onLink: { model.link($0) })
+            } else if let failure = model.failure {
+                ContentUnavailableView("Cannot open this book", systemImage: "exclamationmark.triangle", description: Text(failure))
+            } else {
+                ProgressView().controlSize(.large)
+            }
+        }
+        .background(prefs.theme.groundColor)
+        .task { await model.load() }
+    }
+
+    private var css: String {
+        let t = prefs.theme
+        return EpubCSS.make(text: t.text.hex, ground: t.ground.hex, link: t.link.hex, fontStack: prefs.font.css,
+                            fontSize: prefs.fontSize, lineHeight: prefs.lineSpacing, sidePadding: Double(prefs.sidePadding),
+                            fontFileURL: WebAssets.fontFileURL?.absoluteString)
+    }
+
+    private var highlights: [String] {
+        annotations.compactMap { a in
+            guard a.kind != .bookmark, !a.quote.isEmpty, case .chapter(let i, _)? = ReadingPosition(encoded: a.locator), i == model.chapter else { return nil }
+            return a.quote
+        }
+    }
+}
