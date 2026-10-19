@@ -25,9 +25,9 @@ final class CodeBookModel {
 
     func load() async {
         guard !loaded, let url = Services.url(for: session.book) else { if !loaded { failure = "This file could not be found." }; return }
-        let name = session.book.title.isEmpty ? url.lastPathComponent : url.lastPathComponent
+        let name = url.lastPathComponent
         do {
-            let result = try await Task.detached { () -> ([String], CodeLanguage) in
+            let result = try await Task.detached { () throws -> ([String], CodeLanguage) in
                 let data = try Data(contentsOf: url, options: .mappedIfSafe)
                 let text = String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)
                 let lines = text.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline).map(String.init)

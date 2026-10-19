@@ -102,6 +102,7 @@ struct FolderView: View {
         .navigationTitle(title)
         .searchable(text: $query, prompt: "Search by name")
         .onChange(of: query) { _, q in results = store?.search(q) ?? [] }
+        .onChange(of: sort) { _, _ in reload() }
         .toolbar { toolbar }
         .safeAreaInset(edge: .bottom) { if selecting && !selection.isEmpty { selectionBar } }
         .onAppear(perform: reload)

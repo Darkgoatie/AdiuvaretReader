@@ -3,7 +3,7 @@ import SwiftData
 import ReaderDesign
 import ReaderStore
 
-enum Section: String, CaseIterable, Identifiable {
+enum SidebarSection: String, CaseIterable, Identifiable {
     case library, files
     var id: String { rawValue }
     var title: String { self == .library ? "Library" : "Files" }
@@ -13,12 +13,12 @@ enum Section: String, CaseIterable, Identifiable {
 struct RootView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var phase
-    @State private var section: Section? = .library
+    @State private var section: SidebarSection? = .library
     @State private var openBook: Book?
 
     var body: some View {
         NavigationSplitView {
-            List(Section.allCases, selection: $section) { s in
+            List(SidebarSection.allCases, selection: $section) { s in
                 Label(s.title, systemImage: s.symbol).tag(s)
             }
             .navigationTitle("Reader")

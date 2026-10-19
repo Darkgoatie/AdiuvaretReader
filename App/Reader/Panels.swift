@@ -98,7 +98,7 @@ struct SearchView: View {
                     }
                 }
             }
-            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search this book")
+            .searchable(text: $query, prompt: "Search this book")
             .onChange(of: query) { _, q in
                 task?.cancel()
                 task = Task {

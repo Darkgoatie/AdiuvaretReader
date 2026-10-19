@@ -101,6 +101,14 @@ final class PDFBookModel {
     }
 }
 
+/// A dark reading theme inverts the page colours; images invert too, which is the usual trade for a dark PDF.
+struct DarkPages: ViewModifier {
+    let on: Bool
+    func body(content: Content) -> some View {
+        if on { content.colorInvert() } else { content }
+    }
+}
+
 struct PDFBookView: View {
     let model: PDFBookModel
     private let prefs = ReaderPreferences.shared
@@ -108,7 +116,8 @@ struct PDFBookView: View {
     var body: some View {
         Group {
             if let doc = model.document {
-                PDFKitView(model: model, document: doc, ground: prefs.theme.groundColor, dark: prefs.theme == .dark)
+                PDFKitView(model: model, document: doc, ground: prefs.theme.groundColor)
+                    .modifier(DarkPages(on: prefs.theme == .dark))
             } else if let failure = model.failure {
                 ContentUnavailableView("Cannot open this PDF", systemImage: "exclamationmark.triangle", description: Text(failure))
             } else {
@@ -125,7 +134,6 @@ struct PDFKitView: UIViewRepresentable {
     let model: PDFBookModel
     let document: PDFDocument
     let ground: Color
-    let dark: Bool
 
     func makeCoordinator() -> PDFCoordinator { PDFCoordinator(model) }
 
@@ -145,11 +153,7 @@ struct PDFKitView: UIViewRepresentable {
 
     func updateUIView(_ v: PDFView, context: Context) {
         v.backgroundColor = UIColor(ground)
-        v.overrideUserInterfaceStyle = .unspecified
-        v.layer.filters = nil
-        v.subviews.first?.backgroundColor = UIColor(ground)
         model.view = v
-        context.coordinator.apply(v, dark: dark)
     }
 }
 #else
@@ -157,7 +161,6 @@ struct PDFKitView: NSViewRepresentable {
     let model: PDFBookModel
     let document: PDFDocument
     let ground: Color
-    let dark: Bool
 
     func makeCoordinator() -> PDFCoordinator { PDFCoordinator(model) }
 
@@ -177,7 +180,6 @@ struct PDFKitView: NSViewRepresentable {
     func updateNSView(_ v: PDFView, context: Context) {
         v.backgroundColor = NSColor(ground)
         model.view = v
-        context.coordinator.apply(v, dark: dark)
     }
 }
 #endif
@@ -185,7 +187,7 @@ struct PDFKitView: NSViewRepresentable {
 @MainActor
 final class PDFCoordinator: NSObject {
     let model: PDFBookModel
-    private var observers: [NSObjectProtocol] = []
+    nonisolated(unsafe) private var observers: [NSObjectProtocol] = []
 
     init(_ model: PDFBookModel) { self.model = model }
 
@@ -200,14 +202,6 @@ final class PDFCoordinator: NSObject {
         #if canImport(UIKit)
         let tap = TapRecognizer.make { [weak self] in self?.model.session.chromeVisible.toggle() }
         view.addGestureRecognizer(tap)
-        #endif
-    }
-
-    func apply(_ view: PDFView, dark: Bool) {
-        // A dark reading theme inverts the page colours; images invert too, which is the usual trade for a dark PDF.
-        #if canImport(UIKit)
-        view.layer.filters = nil
-        if dark, let invert = CIFilter(name: "CIColorInvert") { view.layer.filters = [invert] }
         #endif
     }
 

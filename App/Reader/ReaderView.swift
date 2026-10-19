@@ -61,13 +61,15 @@ struct ReaderView: View {
         .sheet(isPresented: $session.showSettings) { ReaderSettingsView().presentationDetents([.medium, .large]) }
         .sheet(isPresented: $session.showContents) { ContentsView(session: session) }
         .sheet(isPresented: $session.showAnnotations) { AnnotationsView(session: session, annotations: annotations) }
-        .sheet(isPresented: $session.showSearch) { if !session.isCode { SearchView(session: session) } }
+        .sheet(isPresented: Binding(get: { session.showSearch && !session.isCode }, set: { session.showSearch = $0 })) { SearchView(session: session) }
         .sheet(isPresented: $session.showAssistant) { AssistantSheet(session: session).presentationDetents([.medium, .large]) }
-        .sheet(item: Binding(get: { session.noteDraft.map { NoteDraft(text: $0) } }, set: { if $0 == nil { session.noteDraft = nil } })) { _ in
+        .sheet(isPresented: Binding(get: { session.noteDraft != nil }, set: { if !$0 { session.noteDraft = nil } })) {
             NoteEditor(session: session) { text in saveNote(text) }
         }
-        .preferredColorScheme(prefs.theme == .dark ? .dark : (prefs.theme == .paper || prefs.theme == .sepia ? .light : nil))
+        .preferredColorScheme(scheme)
     }
+
+    private var scheme: ColorScheme { prefs.theme == .dark ? .dark : .light }
 
     @ViewBuilder private var content: some View {
         switch book.format {
@@ -104,8 +106,7 @@ struct ReaderView: View {
             Menu {
                 Button { session.showAnnotations = true } label: { Label("Highlights and notes", systemImage: "highlighter") }
                 Button { toggleBookmark() } label: { Label(hasBookmark ? "Remove bookmark" : "Add bookmark", systemImage: hasBookmark ? "bookmark.slash" : "bookmark") }
-                if book.format != .code { Button { session.showSettings = true } label: { Label("Appearance", systemImage: "textformat.size") } }
-                else { Button { session.showSettings = true } label: { Label("Appearance", systemImage: "textformat.size") } }
+                Button { session.showSettings = true } label: { Label("Appearance", systemImage: "textformat.size") }
                 if !annotations.isEmpty { ShareLink(item: exportText, subject: Text(book.title)) { Label("Export notes", systemImage: "square.and.arrow.up") } }
             } label: { Label("More", systemImage: "ellipsis.circle") }
         }
@@ -224,8 +225,6 @@ struct ReaderView: View {
         }
     }
 }
-
-struct NoteDraft: Identifiable { let id = UUID(); let text: String }
 
 extension RGB {
     var color: Color { Color(red: r, green: g, blue: b) }

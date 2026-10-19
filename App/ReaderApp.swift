@@ -15,6 +15,6 @@ struct ReaderApp: App {
         WindowGroup {
             RootView()
         }
-        .modelContainer(for: Book.self)
+        .modelContainer(for: [Book.self, BookAnnotation.self])
     }
 }
