@@ -18,7 +18,7 @@ Reading first, assistant second. The assistant never covers the text unless aske
 Long sessions on iPhone and iPad, short ones on the phone in a queue, desktop reading on Mac. Context is limited (4096-token design floor), so the assistant works on the selection, the current chapter, or search hits, never the whole book.
 
 ## Capabilities and Constraints
-- Formats v1: EPUB, PDF, plain text and markdown. Library, progress, highlights, notes, bookmarks.
+- Formats v1: EPUB, PDF, plain text, markdown and source code (read-only, syntax highlighted). Library, progress, highlights, notes, bookmarks.
 - Assistant: on-device models only (Apple Intelligence where available, same approach as Adiuvaret). No cloud.
 - Files: the app is a partial file manager. Full control of its own library folders (create, rename, move, copy, delete with Recently Deleted, search, storage usage), plus import and export through the system Files app and folders the user grants. It does not browse the rest of the device.
 - Wallpapers: Adiuvaret's set (none, bundled scenery, gradient, pattern, solid, own photo) behind the library and files, not behind text.

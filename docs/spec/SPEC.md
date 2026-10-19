@@ -3,7 +3,7 @@
 Core model: a private, on-device reader in which the library, progress and annotations are local data and the assistant is a tool that works only on the passage the user is looking at. (awaiting user confirmation; files are part of "library", the app's own folder tree)
 
 ## Goal
-EPUB, PDF and text reader for iPhone, iPad and Mac with an on-device assistant, visually matching Adiuvaret. It carries Adiuvaret's wallpaper options (none, 13 bundled scenery photos, gradients, patterns, solid colour, own photo) and acts as a partial file manager for the user's reading files.
+EPUB, PDF, text and code reader for iPhone, iPad and Mac with an on-device assistant, visually matching Adiuvaret. It carries Adiuvaret's wallpaper options (none, 13 bundled scenery photos, gradients, patterns, solid colour, own photo) and acts as a partial file manager for the user's reading files.
 
 ## Non-goals
 A full file manager: no browsing of other apps' data or the whole device; only the app's own library and folders the user explicitly grants. No cloud AI, accounts, book store, DRM books, audiobooks, iCloud sync (v1).
@@ -20,6 +20,7 @@ SwiftUI, Swift 6, iOS 17 / macOS 14 minimum, one multiplatform target. Bundle ID
 - PRODUCT.md, DESIGN.md in this repo.
 
 ## Decisions
+- Code viewing is read-only in v1 (no editor): keeps the app a reader; syntax highlighting is a small in-house tokenizer, no third-party dependency unless task 20 shows it is not enough.
 - New repo and folder, design tokens copied, not linked: independent releases.
 - Wallpapers copied from Adiuvaret as of 2026-10-19 (13 Pexels scenes, 1440x2560, about 5 MB), credits file kept with them.
 - Partial file manager = full control of the app library (folders, rename, move, copy, delete with Recently Deleted, search, usage) plus import from and export to the system Files app and user-granted external folders.

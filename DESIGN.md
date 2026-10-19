@@ -15,6 +15,9 @@ Same options as Adiuvaret Settings > Theme > Wallpaper: None (default), Scenery 
 ## Files
 Files is a top-level section next to Library: folder list with sizes, breadcrumb, multi-select, swipe and context actions (rename, move, copy, delete, share), search by name, Recently Deleted. System grouped lists, no custom chrome; book files show a progress ring and open in the reader.
 
+## Code viewer
+Read-only. Monospaced (system mono), line numbers in a quiet gutter, syntax colours drawn from the app palette (green accent for keywords, warm neutrals elsewhere) with 4.5:1 contrast on paper and dark grounds, wrap toggle, find bar. No editing chrome.
+
 ## Typography
 UI: Google Sans Flex for headings, buttons, captions; Google Sans for body. Archivo Black only for the library title. Reading text: user choice among Google Sans, a system serif (New York) and system sans, with size, line spacing and margin controls. All via Font.custom relativeTo text styles so Dynamic Type scales.
 
