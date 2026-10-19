@@ -94,6 +94,21 @@ public struct EpubBook: Sendable {
         return EpubBook(title: title, author: author, root: cache, spine: spine, toc: toc)
     }
 
+    /// Title and author read from the package file only, without extracting the book.
+    public static func metadata(at file: URL) -> (title: String, author: String)? {
+        guard let zip = try? ZipArchive(contentsOf: file),
+              let containerData = try? zip.data(named: "META-INF/container.xml"),
+              let container = XMLTree.parse(containerData),
+              let opfPath = container.first(named: "rootfile")?.attrs["full-path"],
+              let opfData = try? zip.data(named: opfPath),
+              let opf = XMLTree.parse(opfData)
+        else { return nil }
+        let md = opf.first(named: "metadata")
+        let title = md?.first(named: "title")?.text.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let author = md?.first(named: "creator")?.text.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return (title, author)
+    }
+
     static func normalize(_ path: String) -> String {
         var out: [Substring] = []
         for part in path.split(separator: "/") {

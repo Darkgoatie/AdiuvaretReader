@@ -6,6 +6,14 @@ public struct SearchHit: Identifiable, Equatable, Sendable {
     public let offset: Int
     public let length: Int
     public let snippet: String
+
+    public init(id: Int, chapter: Int, offset: Int, length: Int, snippet: String) {
+        self.id = id
+        self.chapter = chapter
+        self.offset = offset
+        self.length = length
+        self.snippet = snippet
+    }
 }
 
 public enum BookSearch {

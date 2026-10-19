@@ -110,6 +110,15 @@ import Foundation
         #expect(try b.list().map(\.name) == ["shared.pdf"])
     }
 
+    @Test func listsAllFolders() throws {
+        let s = store()
+        try s.createFolder(named: "B")
+        try s.createFolder(named: "A")
+        try s.createFolder(named: "C", in: "A")
+        try write(s, "A/f.txt")
+        #expect(s.allFolders() == ["A", "A/C", "B"])
+    }
+
     @Test func addCopyFromOutside() throws {
         let s = store()
         let outside = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".txt")
@@ -133,6 +142,24 @@ import Foundation
         #expect(again.contents(of: url).map(\.lastPathComponent) == ["a.txt"])
         again.remove(folder.id)
         #expect(again.folders.isEmpty)
+    }
+
+    @Test func externalListAndCopy() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir.appendingPathComponent("sub"), withIntermediateDirectories: true)
+        try Data("hello".utf8).write(to: dir.appendingPathComponent("sub/b.txt"))
+        try Data("x".utf8).write(to: dir.appendingPathComponent("a.txt"))
+        let d = UserDefaults(suiteName: "test." + UUID().uuidString)!
+        let ext = ExternalFolderStore(defaults: d, scoped: false)
+        let folder = try ext.add(dir)
+        #expect(ext.list(folder).map(\.name) == ["sub", "a.txt"])
+        #expect(ext.list(folder, subpath: "sub").map(\.relativePath) == ["sub/b.txt"])
+        #expect(ext.list(folder, subpath: "../x").isEmpty)
+        let s = store()
+        let copied = try ext.copy(folder, subpath: "sub/b.txt", into: s)
+        #expect(copied == "b.txt")
+        #expect(try String(contentsOf: s.resolve("b.txt"), encoding: .utf8) == "hello")
+        #expect(throws: ExternalError.unsafePath) { try ext.copy(folder, subpath: "../a", into: s) }
     }
 
     @Test func scanFindsOnlyNewOpenableFiles() {

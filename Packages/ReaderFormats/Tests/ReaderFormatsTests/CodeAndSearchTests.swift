@@ -61,4 +61,22 @@ import Foundation
         #expect(BookSearch.search(query: "a", texts: [(0, "aaa")]).isEmpty)
         #expect(BookSearch.lineMatches(["Alpha", "beta", "ALPHA beta"], query: "alpha") == [0, 2])
     }
+
+    @Test func markdownToHTML() {
+        let blocks = ProseParser.markdown("# Hi <you>\n\nSome **bold** and *soft* and `code` and [site](https://a.b/c).\n\n- one\n- two\n\n```\nx < y\n```")
+        let html = ProseHTML.page(title: "T & T", blocks: blocks, markdown: true)
+        #expect(html.contains("<h1>Hi &lt;you&gt;</h1>"))
+        #expect(html.contains("<strong>bold</strong>"))
+        #expect(html.contains("<em>soft</em>"))
+        #expect(html.contains("<code>code</code>"))
+        #expect(html.contains("<a href=\"https://a.b/c\">site</a>"))
+        #expect(html.contains("<ul>\n<li>one</li>\n<li>two</li>\n</ul>"))
+        #expect(html.contains("<pre><code>x &lt; y</code></pre>"))
+        #expect(html.contains("<title>T &amp; T</title>"))
+    }
+
+    @Test func plainTextKeepsLineBreaksAndEscapes() {
+        let html = ProseHTML.page(title: "t", blocks: ProseParser.plain("a < b\nsecond *line*"), markdown: false)
+        #expect(html.contains("<p>a &lt; b<br>second *line*</p>"))
+    }
 }

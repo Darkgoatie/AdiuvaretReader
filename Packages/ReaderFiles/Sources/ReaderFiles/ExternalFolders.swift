@@ -72,6 +72,54 @@ public final class ExternalFolderStore: @unchecked Sendable {
     }
 }
 
+public struct ExternalEntry: Identifiable, Hashable, Sendable {
+    public var id: String { relativePath }
+    public let name: String
+    public let relativePath: String
+    public let isDirectory: Bool
+    public let size: Int64
+}
+
+public enum ExternalError: Error, Equatable {
+    case unavailable
+    case unsafePath
+}
+
+extension ExternalFolderStore {
+    private func target(_ folder: ExternalFolder, _ subpath: String) throws -> (root: URL, url: URL) {
+        let parts = subpath.split(separator: "/", omittingEmptySubsequences: true)
+        if parts.contains("..") { throw ExternalError.unsafePath }
+        guard let root = resolve(folder) else { throw ExternalError.unavailable }
+        return (root, parts.reduce(root) { $0.appendingPathComponent(String($1)) })
+    }
+
+    /// Direct contents of `subpath` inside the folder. Folders come first.
+    public func list(_ folder: ExternalFolder, subpath: String = "") -> [ExternalEntry] {
+        guard let t = try? target(folder, subpath) else { return [] }
+        let access = t.root.startAccessingSecurityScopedResource()
+        defer { if access { t.root.stopAccessingSecurityScopedResource() } }
+        let urls = (try? FileManager.default.contentsOfDirectory(at: t.url, includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey], options: [.skipsHiddenFiles])) ?? []
+        let entries = urls.map { u -> ExternalEntry in
+            let v = try? u.resourceValues(forKeys: [.isDirectoryKey, .fileSizeKey])
+            let rel = subpath.isEmpty ? u.lastPathComponent : subpath + "/" + u.lastPathComponent
+            return ExternalEntry(name: u.lastPathComponent, relativePath: rel, isDirectory: v?.isDirectory ?? false, size: Int64(v?.fileSize ?? 0))
+        }
+        return entries.sorted {
+            if $0.isDirectory != $1.isDirectory { return $0.isDirectory }
+            return $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
+    }
+
+    /// Copies one file or folder from the external folder into `dest`. The original is left alone.
+    @discardableResult
+    public func copy(_ folder: ExternalFolder, subpath: String, into dest: FileStore, folderPath: String = "") throws -> String {
+        let t = try target(folder, subpath)
+        let access = t.root.startAccessingSecurityScopedResource()
+        defer { if access { t.root.stopAccessingSecurityScopedResource() } }
+        return try dest.addCopy(of: t.url, toFolder: folderPath)
+    }
+}
+
 public enum SharedSpace {
     public static let groupID = "group.com.halit.shared"
 

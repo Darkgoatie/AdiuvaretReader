@@ -148,6 +148,17 @@ public struct FileStore: Sendable {
         return out
     }
 
+    /// Relative paths of every folder under the root, sorted.
+    public func allFolders() -> [String] {
+        var out: [String] = []
+        func walk(_ folder: String) {
+            guard let items = try? list(folder) else { return }
+            for i in items where i.isDirectory { out.append(i.relativePath); walk(i.relativePath) }
+        }
+        walk("")
+        return out.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+    }
+
     public func size(of path: String) -> Int64 {
         guard let url = try? resolve(path) else { return 0 }
         if !isDirectory(url) { return Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) }

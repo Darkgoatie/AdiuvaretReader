@@ -8,6 +8,12 @@ public struct RGB: Sendable, Equatable {
         b = Double(hex & 0xFF) / 255
     }
 
+    /// `#RRGGBB`.
+    public var hex: String {
+        func byte(_ x: Double) -> Int { Int((min(max(x, 0), 1) * 255).rounded()) }
+        return String(format: "#%02X%02X%02X", byte(r), byte(g), byte(b))
+    }
+
     /// WCAG relative luminance.
     public var luminance: Double {
         func lin(_ c: Double) -> Double { c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }

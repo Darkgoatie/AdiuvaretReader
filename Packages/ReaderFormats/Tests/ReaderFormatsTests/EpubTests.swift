@@ -62,6 +62,37 @@ import Foundation
         #expect(again.spine.count == 2)
     }
 
+    @Test func readsMetadataOnly() throws {
+        let file = try sampleEpub()
+        let md = EpubBook.metadata(at: file)
+        #expect(md?.title == "Sample Book")
+        #expect(md?.author == "A. Writer")
+        #expect(EpubBook.metadata(at: URL(fileURLWithPath: "/nonexistent.epub")) == nil)
+    }
+
+    @Test func cssCarriesSettings() {
+        let css = EpubCSS.make(text: "#111111", ground: "#FAF7F2", link: "#0B7551", fontStack: "serif", fontSize: 21.4, lineHeight: 1.6, sidePadding: 30, fontFileURL: "file:///f.ttf")
+        #expect(css.contains("font-size:21px"))
+        #expect(css.contains("line-height:1.6"))
+        #expect(css.contains("#FAF7F2"))
+        #expect(css.contains("url('file:///f.ttf')"))
+        #expect(!EpubCSS.make(text: "#1", ground: "#2", link: "#3", fontStack: "s", fontSize: 18, lineHeight: 1.5, sidePadding: 20, fontFileURL: nil).contains("@font-face"))
+    }
+
+    @Test func labels() {
+        #expect(ReadingPosition.chapter(index: 2, fraction: 0).label() == "Chapter 3")
+        #expect(ReadingPosition.page(0).label() == "Page 1")
+        #expect(ReadingPosition.block(39).label(isCode: true) == "Line 40")
+        #expect(ReadingPosition.block(3).label() == "Section 4")
+    }
+
+    @Test func nearPositions() {
+        #expect(ReadingPosition.chapter(index: 2, fraction: 0.50).isNear(.chapter(index: 2, fraction: 0.52)))
+        #expect(!ReadingPosition.chapter(index: 2, fraction: 0.5).isNear(.chapter(index: 3, fraction: 0.5)))
+        #expect(ReadingPosition.page(4).isNear(.page(4)))
+        #expect(!ReadingPosition.page(4).isNear(.block(4)))
+    }
+
     @Test func htmlTextStripsMarkup() {
         let html = "<html><head><style>p{color:red}</style></head><body><h1>Title</h1><p>One &lt;b&gt; &#65;</p><script>x()</script><p>Two</p></body></html>"
         #expect(HTMLText.plain(from: html) == "Title\nOne <b> A\nTwo")
