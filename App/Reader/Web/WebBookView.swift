@@ -13,7 +13,7 @@ struct WebBookView: View {
             if let request = model.request {
                 WebReaderView(
                     request: request,
-                    readAccess: WebAssets.root,
+                    readAccess: URL(fileURLWithPath: NSHomeDirectory()),
                     css: css,
                     ground: prefs.theme.ground.hex,
                     highlights: highlights,

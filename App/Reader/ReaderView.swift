@@ -17,11 +17,15 @@ struct ReaderView: View {
     @State private var toast: String?
     private let prefs = ReaderPreferences.shared
 
-    init(book: Book) {
+    @State private var linked: LinkedNote?
+
+    init(book: Book, fragment: String? = nil) {
         self.book = book
         let id = book.id
         _annotations = Query(filter: #Predicate<BookAnnotation> { $0.bookID == id }, sort: \.createdAt)
-        _session = State(initialValue: ReaderSession(book: book))
+        let s = ReaderSession(book: book)
+        s.startFragment = fragment
+        _session = State(initialValue: s)
     }
 
     var body: some View {
@@ -58,6 +62,8 @@ struct ReaderView: View {
             pdf?.handle(jump)
         }
         .onChange(of: session.progress) { _, v in book.progress = v }
+        .onChange(of: session.toast) { _, v in if let v { say(v); session.toast = nil } }
+        .navigationDestination(item: $linked) { ReaderView(book: $0.book, fragment: $0.fragment).id($0.book.id) }
         .sheet(isPresented: $session.showSettings) { ReaderSettingsView().presentationDetents([.medium, .large]) }
         .sheet(isPresented: $session.showContents) { ContentsView(session: session) }
         .sheet(isPresented: $session.showAnnotations) { AnnotationsView(session: session, annotations: annotations) }
@@ -85,6 +91,14 @@ struct ReaderView: View {
     private func start() {
         guard web == nil, pdf == nil, code == nil else { return }
         book.lastOpenedAt = Date()
+        session.openNote = { path, fragment in
+            let store = book.isShared ? Services.shared : Services.files
+            guard let url = try? store?.resolve(path), FileManager.default.fileExists(atPath: url.path),
+                  BookFormat.detect(fileName: path) != nil,
+                  let target = LibraryService.book(at: path, shared: book.isShared, in: context)
+            else { say("That file cannot be opened here."); return }
+            linked = LinkedNote(book: target, fragment: fragment)
+        }
         switch book.format {
         case .epub, .text, .markdown, .latex: web = WebBookModel(session: session)
         case .pdf: pdf = PDFBookModel(session: session)
@@ -224,6 +238,14 @@ struct ReaderView: View {
             if toast == text { toast = nil }
         }
     }
+}
+
+struct LinkedNote: Identifiable, Hashable {
+    let book: Book
+    let fragment: String?
+    var id: String { book.id.uuidString + (fragment ?? "") }
+    static func == (a: LinkedNote, b: LinkedNote) -> Bool { a.id == b.id }
+    func hash(into h: inout Hasher) { h.combine(id) }
 }
 
 extension RGB {

@@ -44,6 +44,10 @@ final class ReaderSession {
     var searchProvider: (@MainActor (String) async -> [SearchHit])?
     var hitPosition: ((SearchHit) -> ReadingPosition)?
     var stepper: ((Int) -> Void)?
+    var openNote: ((String, String?) -> Void)?
+    var pendingQuery: String?
+    var toast: String?
+    var startFragment: String?
     var clearSelectionHook: (() -> Void)?
 
     @ObservationIgnored private var saveTask: Task<Void, Never>?

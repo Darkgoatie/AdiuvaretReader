@@ -37,12 +37,21 @@ final class WebBookModel {
                 let isMarkdown = format != .text
                 let title = session.book.title
                 let page = WebAssets.pageURL(for: id)
+                let relative = session.book.relativePath
+                let shared = session.book.isShared
+                let files = shared ? Services.shared : Services.files
                 try await Task.detached {
                     let data = try Data(contentsOf: url)
                     let source = String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)
-                    let prepared = format == .latex ? LatexConverter.toMarkdown(source) : source
-                    let blocks = isMarkdown ? ProseParser.markdown(prepared) : ProseParser.plain(prepared)
-                    try ProseHTML.page(title: title, blocks: blocks, markdown: isMarkdown).write(to: page, atomically: true, encoding: .utf8)
+                    let html: String
+                    if format == .markdown {
+                        html = ObsidianMarkdown.page(title: title, source: source, ctx: ObsidianVault.context(for: relative, shared: shared, files: files))
+                    } else if format == .latex {
+                        html = ProseHTML.page(title: title, blocks: ProseParser.markdown(LatexConverter.toMarkdown(source)), markdown: true)
+                    } else {
+                        html = ProseHTML.page(title: title, blocks: ProseParser.plain(source), markdown: false)
+                    }
+                    try html.write(to: page, atomically: true, encoding: .utf8)
                 }.value
                 chapters = [page]
             default:
@@ -61,7 +70,12 @@ final class WebBookModel {
             start = f
         }
         installHooks()
-        open(chapter: index, fraction: start)
+        var anchor: String?
+        if let f = session.startFragment, !f.isEmpty, chapters.count == 1 {
+            anchor = f.hasPrefix("^") ? f : "h-" + Slug.make(f)
+            session.startFragment = nil
+        }
+        open(chapter: index, fraction: start, anchor: anchor)
     }
 
     private func installHooks() {
@@ -105,12 +119,24 @@ final class WebBookModel {
         if case .chapter(let i, let f) = jump.position { open(chapter: i, fraction: f, find: jump.find) }
     }
 
-    /// A tapped link to another chapter file. Returns true when it was one.
+    /// A tapped link to another chapter file or note. Returns true when it was one.
     func link(_ url: URL) -> Bool {
+        if url.scheme == "obsidian-note" { openNote(url); return true }
+        if url.scheme == "obsidian-tag" { session.showSearch = true; session.pendingQuery = "#" + (url.absoluteString.dropFirst("obsidian-tag:".count).removingPercentEncoding ?? ""); return true }
+        if url.scheme == "obsidian-missing" { session.toast = "That note does not exist in this library."; return true }
         let target = url.deletingFragment().standardizedFileURL.path
         guard let i = chapters.firstIndex(where: { $0.standardizedFileURL.path == target }) else { return false }
         open(chapter: i, anchor: url.fragment)
         return true
+    }
+
+    /// Follows `[[Note]]`, `[[Note#Heading]]` and PDF links by opening the target in the same reader, so Back returns here.
+    private func openNote(_ url: URL) {
+        let raw = String(url.absoluteString.dropFirst("obsidian-note:".count))
+        let parts = raw.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
+        let path = parts[0].removingPercentEncoding ?? parts[0]
+        let fragment = parts.count > 1 ? (parts[1].removingPercentEncoding ?? parts[1]) : nil
+        session.openNote?(path, fragment)
     }
 
     private func search(_ query: String) async -> [SearchHit] {

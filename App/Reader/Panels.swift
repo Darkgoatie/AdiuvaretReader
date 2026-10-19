@@ -99,6 +99,7 @@ struct SearchView: View {
                 }
             }
             .searchable(text: $query, prompt: "Search this book")
+            .onAppear { if let q = session.pendingQuery { query = q; session.pendingQuery = nil } }
             .onChange(of: query) { _, q in
                 task?.cancel()
                 task = Task {

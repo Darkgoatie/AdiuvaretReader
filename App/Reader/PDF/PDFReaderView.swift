@@ -147,7 +147,10 @@ struct PDFKitView: UIViewRepresentable {
         v.pageShadowsEnabled = false
         model.view = v
         context.coordinator.attach(v)
-        if let saved = model.session.book.locator, case .page(let p)? = ReadingPosition(encoded: saved) { model.goTo(page: p) }
+        if let f = model.session.startFragment, f.hasPrefix("page="), let n = Int(f.dropFirst(5)) {
+            model.goTo(page: n - 1)
+            model.session.startFragment = nil
+        } else if let saved = model.session.book.locator, case .page(let p)? = ReadingPosition(encoded: saved) { model.goTo(page: p) }
         return v
     }
 

@@ -86,6 +86,10 @@ struct WebReaderView: PlatformRepresentable {
 
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction) async -> WKNavigationActionPolicy {
             guard let url = navigationAction.request.url else { return .cancel }
+            if navigationAction.navigationType == .linkActivated, let scheme = url.scheme, scheme.hasPrefix("obsidian-") {
+                _ = parent.onLink(url)
+                return .cancel
+            }
             if navigationAction.navigationType != .linkActivated { return url.isFileURL || url.scheme == "about" ? .allow : .cancel }
             if url.isFileURL {
                 let same = url.deletingFragment().standardizedFileURL == loadedURL?.standardizedFileURL
