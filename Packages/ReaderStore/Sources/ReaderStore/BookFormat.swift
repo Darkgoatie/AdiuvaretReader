@@ -21,6 +21,13 @@ public enum BookFormat: String, Codable, CaseIterable, Sendable {
         }
     }
 
+    public var isTextual: Bool {
+        switch self {
+        case .text, .markdown, .latex, .code: true
+        case .epub, .pdf: false
+        }
+    }
+
     public var title: String {
         switch self {
         case .epub: "EPUB"

@@ -240,7 +240,10 @@ struct FolderView: View {
         } else {
             Button { openFile(item) } label: {
                 HStack {
-                    Image(systemName: BookFormat.detect(fileName: item.name)?.symbol ?? "doc").foregroundStyle(DS.Colors.accentText).frame(width: 28)
+                    FilePreview(store: store, path: item.relativePath, name: item.name)
+                        .frame(width: 38, height: 50)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(DS.Colors.separator))
                     VStack(alignment: .leading) {
                         Text(item.name).foregroundStyle(DS.Colors.textPrimary).lineLimit(2)
                         Text(ByteCountFormatter.string(fromByteCount: item.size, countStyle: .file) + (query.isEmpty ? "" : "  \(item.relativePath)"))

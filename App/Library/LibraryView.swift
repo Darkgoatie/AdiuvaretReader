@@ -150,11 +150,10 @@ struct BookRow: View {
 
     var body: some View {
         HStack(spacing: Spacing.m) {
-            Image(systemName: book.format.symbol)
-                .font(.title2)
-                .foregroundStyle(DS.Colors.accentText)
-                .frame(width: 44, height: 44)
-                .background(DS.Colors.surfaceRaised, in: RoundedRectangle(cornerRadius: Radius.s))
+            FilePreview(book: book)
+                .frame(width: 46, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: Radius.s))
+                .overlay(RoundedRectangle(cornerRadius: Radius.s).stroke(DS.Colors.separator))
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(book.title).font(DS.Typography.headline).foregroundStyle(DS.Colors.textPrimary).lineLimit(2)
                 Text(book.author.isEmpty ? book.format.title : "\(book.author), \(book.format.title)")
@@ -174,15 +173,10 @@ struct BookTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.s) {
-            ZStack {
-                RoundedRectangle(cornerRadius: Radius.m).fill(DS.Colors.surface.opacity(0.92))
-                VStack(spacing: Spacing.s) {
-                    Image(systemName: book.format.symbol).font(.system(size: 34)).foregroundStyle(DS.Colors.accentText)
-                    Text(book.format.title).font(DS.Typography.caption).foregroundStyle(DS.Colors.textSecondary)
-                }
-            }
-            .aspectRatio(3.0 / 4.0, contentMode: .fit)
-            .overlay(RoundedRectangle(cornerRadius: Radius.m).stroke(DS.Colors.separator))
+            FilePreview(book: book)
+                .aspectRatio(3.0 / 4.0, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: Radius.m))
+                .overlay(RoundedRectangle(cornerRadius: Radius.m).stroke(DS.Colors.separator))
             Text(book.title).font(DS.Typography.subheadline.weight(.semibold)).foregroundStyle(DS.Colors.textPrimary).lineLimit(2)
             if book.progress > 0 { ProgressView(value: book.progress).tint(DS.Colors.accent) }
         }

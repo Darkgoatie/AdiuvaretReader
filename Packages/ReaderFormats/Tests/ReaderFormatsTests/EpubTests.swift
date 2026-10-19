@@ -105,4 +105,38 @@ import Foundation
         #expect(ReadingPosition(encoded: "junk") == nil)
         #expect(abs(ReadingPosition.overall(chapter: 1, fraction: 0.5, count: 3) - 0.5) < 0.0001)
     }
+
+    private func epub(cover: Bool) throws -> URL {
+        var z = ZipBuilder()
+        z.add("META-INF/container.xml", "<?xml version=\"1.0\"?><container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"OPS/package.opf\"/></rootfiles></container>")
+        let meta = cover ? "<meta name=\"cover\" content=\"img\"/>" : ""
+        z.add("OPS/package.opf", "<?xml version=\"1.0\"?><package xmlns=\"http://www.idpf.org/2007/opf\"><metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:title>T</dc:title>\(meta)</metadata><manifest><item id=\"img\" href=\"images/cover%201.png\" media-type=\"image/png\"/><item id=\"c1\" href=\"c1.xhtml\" media-type=\"application/xhtml+xml\"/></manifest><spine><itemref idref=\"c1\"/></spine></package>")
+        z.add("OPS/images/cover 1.png", "PNGDATA")
+        z.add("OPS/c1.xhtml", "<html><body><h1>Opening</h1><p>It was a bright cold day in April, and the clocks were striking thirteen.</p></body></html>")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".epub")
+        try z.build().write(to: url)
+        return url
+    }
+
+    @Test func coverAndPreviewText() throws {
+        let with = try epub(cover: true)
+        #expect(EpubBook.coverData(at: with) == Data("PNGDATA".utf8))
+        let without = try epub(cover: false)
+        #expect(EpubBook.coverData(at: without) == nil)
+        let text = try #require(EpubBook.previewText(at: without))
+        #expect(text.hasPrefix("Opening"))
+        #expect(text.contains("bright cold day"))
+        #expect(EpubBook.coverData(at: URL(fileURLWithPath: "/nonexistent.epub")) == nil)
+    }
+
+    @Test func snippetsAreCleaned() {
+        let md = Data("# Title\n\n\n**Bold** and `code`\n- item".utf8)
+        #expect(FilePreviewText.snippet(md, kind: .markdown) == "Title\n\nBold and code\n- item")
+        let code = Data("\n\nfunc a() {\n    x\t\n}\n".utf8)
+        #expect(FilePreviewText.snippet(code, kind: .code) == "func a() {\n    x\n}")
+        #expect(FilePreviewText.snippet(Data(String(repeating: "a", count: 100).utf8), kind: .plain).count == 48)
+        let many = Data((0..<40).map { "line \($0)" }.joined(separator: "\n").utf8)
+        #expect(FilePreviewText.snippet(many, kind: .plain).split(separator: "\n").count == 14)
+        #expect(FilePreviewText.snippet(Data("\\section{Intro}\nHello $x$".utf8), kind: .latex).contains("Intro"))
+    }
 }

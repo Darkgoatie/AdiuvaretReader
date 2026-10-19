@@ -94,6 +94,62 @@ public struct EpubBook: Sendable {
         return EpubBook(title: title, author: author, root: cache, spine: spine, toc: toc)
     }
 
+    private static func openPackage(_ file: URL) -> (zip: ZipArchive, opf: XNode, base: String)? {
+        guard let zip = try? ZipArchive(contentsOf: file),
+              let containerData = try? zip.data(named: "META-INF/container.xml"),
+              let container = XMLTree.parse(containerData),
+              let opfPath = container.first(named: "rootfile")?.attrs["full-path"],
+              let opfData = try? zip.data(named: opfPath),
+              let opf = XMLTree.parse(opfData)
+        else { return nil }
+        return (zip, opf, (opfPath as NSString).deletingLastPathComponent)
+    }
+
+    private static func resolvePath(_ href: String, base: String) -> String {
+        let clean = href.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init) ?? href
+        let decoded = clean.removingPercentEncoding ?? clean
+        return normalize(base.isEmpty ? decoded : base + "/" + decoded)
+    }
+
+    /// The cover image bytes, read straight from the archive without extracting the book.
+    public static func coverData(at file: URL) -> Data? {
+        guard let p = openPackage(file) else { return nil }
+        var items: [String: (href: String, type: String, props: String)] = [:]
+        for item in p.opf.first(named: "manifest")?.descendants(named: "item") ?? [] {
+            if let id = item.attrs["id"], let href = item.attrs["href"] {
+                items[id] = (href, item.attrs["media-type"] ?? "", item.attrs["properties"] ?? "")
+            }
+        }
+        var href: String?
+        if let meta = p.opf.first(named: "metadata")?.descendants(named: "meta").first(where: { $0.attrs["name"] == "cover" }),
+           let id = meta.attrs["content"], let item = items[id], item.type.hasPrefix("image") {
+            href = item.href
+        }
+        if href == nil { href = items.values.first { $0.props.split(separator: " ").contains("cover-image") }?.href }
+        guard let found = href else { return nil }
+        return try? p.zip.data(named: resolvePath(found, base: p.base))
+    }
+
+    /// The opening text of the first readable chapter, for books without a cover.
+    public static func previewText(at file: URL, limit: Int = 700) -> String? {
+        guard let p = openPackage(file) else { return nil }
+        var manifest: [String: (href: String, type: String)] = [:]
+        for item in p.opf.first(named: "manifest")?.descendants(named: "item") ?? [] {
+            if let id = item.attrs["id"], let href = item.attrs["href"] { manifest[id] = (href, item.attrs["media-type"] ?? "") }
+        }
+        var tried = 0
+        for ref in p.opf.first(named: "spine")?.descendants(named: "itemref") ?? [] {
+            guard let id = ref.attrs["idref"], let item = manifest[id], item.type.contains("html") else { continue }
+            tried += 1
+            if tried > 4 { break }
+            guard let data = try? p.zip.data(named: resolvePath(item.href, base: p.base)),
+                  let html = String(data: data, encoding: .utf8) else { continue }
+            let text = HTMLText.plain(from: html)
+            if text.count > 40 { return String(text.prefix(limit)) }
+        }
+        return nil
+    }
+
     /// Title and author read from the package file only, without extracting the book.
     public static func metadata(at file: URL) -> (title: String, author: String)? {
         guard let zip = try? ZipArchive(contentsOf: file),
