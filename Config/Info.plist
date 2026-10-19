@@ -6,6 +6,17 @@
 	<true/>
 	<key>UIFileSharingEnabled</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.halit.adiuvaretreader</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>adiuvaretreader</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>

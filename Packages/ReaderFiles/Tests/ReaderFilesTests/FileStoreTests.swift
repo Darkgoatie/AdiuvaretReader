@@ -205,4 +205,24 @@ import Foundation
         #expect(second.destination == "Reading 2")
         #expect(s.allFiles().count == 6)
     }
+
+    @Test func readerLinksRoundTrip() throws {
+        let url = try #require(ReaderLink.url(path: "Notes & More/Chapter 1.md", fragment: "Big Heading"))
+        #expect(url.scheme == "adiuvaretreader")
+        let parsed = try #require(ReaderLink.parse(url))
+        #expect(parsed.path == "Notes & More/Chapter 1.md")
+        #expect(parsed.fragment == "Big Heading")
+        #expect(ReaderLink.parse(try #require(ReaderLink.url(path: "a.pdf")))?.fragment == nil)
+    }
+
+    @Test func readerLinksRejectBadPaths() {
+        #expect(ReaderLink.url(path: "") == nil)
+        #expect(ReaderLink.url(path: "../secret") == nil)
+        #expect(ReaderLink.url(path: "a/../../b") == nil)
+        #expect(ReaderLink.url(path: "/etc/passwd") == nil)
+        #expect(ReaderLink.parse(URL(string: "https://example.com/open?path=a")!) == nil)
+        #expect(ReaderLink.parse(URL(string: "adiuvaretreader://open?path=../x")!) == nil)
+        #expect(ReaderLink.parse(URL(string: "adiuvaretreader://other?path=a")!) == nil)
+        #expect(ReaderLink.parse(URL(string: "adiuvaretreader://open")!) == nil)
+    }
 }
