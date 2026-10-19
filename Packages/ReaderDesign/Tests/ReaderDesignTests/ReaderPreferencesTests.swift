@@ -28,4 +28,57 @@ import Foundation
         #expect(p.fontSize == 34)
         #expect(p.margin == 0)
     }
+
+    @Test func keepScreenOnDefaultsToOnAndPersists() {
+        let d = defaults()
+        let p = ReaderPreferences(defaults: d)
+        #expect(p.keepScreenOn)
+        p.keepScreenOn = false
+        #expect(!ReaderPreferences(defaults: d).keepScreenOn)
+    }
+
+    @Test func aBookCanKeepItsOwnSettings() {
+        let d = defaults()
+        let p = ReaderPreferences(defaults: d)
+        let book = UUID()
+        p.fontSize = 20
+        p.enter(book: book)
+        #expect(!p.isScoped)
+        p.setScoped(true)
+        p.fontSize = 30
+        p.theme = .sepia
+        #expect(ReaderPreferences(defaults: d).fontSize == 20)
+        p.leave()
+        #expect(p.fontSize == 20 && p.theme == .paper)
+        p.enter(book: book)
+        #expect(p.isScoped && p.fontSize == 30 && p.theme == .sepia)
+        let other = UUID()
+        p.leave()
+        p.enter(book: other)
+        #expect(!p.isScoped && p.fontSize == 20)
+    }
+
+    @Test func changesWithoutABookOverrideStayGlobal() {
+        let d = defaults()
+        let p = ReaderPreferences(defaults: d)
+        p.enter(book: UUID())
+        p.fontSize = 26
+        p.leave()
+        #expect(ReaderPreferences(defaults: d).fontSize == 26)
+    }
+
+    @Test func turningTheOverrideOffReturnsToGlobal() {
+        let d = defaults()
+        let p = ReaderPreferences(defaults: d)
+        let book = UUID()
+        p.fontSize = 18
+        p.enter(book: book)
+        p.setScoped(true)
+        p.fontSize = 32
+        p.setScoped(false)
+        #expect(p.fontSize == 18 && !p.isScoped)
+        p.leave()
+        p.enter(book: book)
+        #expect(!p.isScoped && p.fontSize == 18)
+    }
 }

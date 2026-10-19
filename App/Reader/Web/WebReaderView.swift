@@ -39,7 +39,7 @@ struct WebReaderView: PlatformRepresentable {
     let readAccess: URL
     let css: String
     let ground: String
-    let highlights: [String]
+    let highlights: [WebHighlight]
     let controller: WebReaderController
     let onSelection: (String) -> Void
     let onScroll: (Double) -> Void
@@ -56,7 +56,7 @@ struct WebReaderView: PlatformRepresentable {
         var loadedURL: URL?
         var lastRequestID: UUID?
         var ready = false
-        var highlights: [String] = []
+        var highlights: [WebHighlight] = []
         var current: WebRequest?
         static var blockList: WKContentRuleList?
 
@@ -120,7 +120,7 @@ struct WebReaderView: PlatformRepresentable {
             }
             if loadedURL?.path.contains("/pages/") == true { await run("window.rd.math()") }
             highlights = parent.highlights
-            await run("window.rd.setHighlights(\(WebBridge.jsArray(highlights)))")
+            await run("window.rd.setHighlights(\(WebBridge.jsHighlights(highlights)))")
             await perform(current, in: webView)
             await run("window.rd.show()")
         }
@@ -190,7 +190,7 @@ struct WebReaderView: PlatformRepresentable {
         }
         if c.ready, highlights != c.highlights {
             c.highlights = highlights
-            view.evaluateJavaScript("window.rd.setHighlights(\(WebBridge.jsArray(highlights)))", in: nil, in: .defaultClient, completionHandler: nil)
+            view.evaluateJavaScript("window.rd.setHighlights(\(WebBridge.jsHighlights(highlights)))", in: nil, in: .defaultClient, completionHandler: nil)
         }
     }
 

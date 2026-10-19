@@ -57,6 +57,9 @@ struct SettingsView: View {
                     Text("Wallpapers show behind the library and files, never behind reading text.")
                         .font(DS.Typography.footnote).foregroundStyle(DS.Colors.textSecondary)
                 }
+                Section("About") {
+                    LabeledContent("Version", value: Self.version)
+                }
                 Section("Privacy") {
                     Text("Your books, notes and highlights stay on this device.")
                         .font(DS.Typography.footnote).foregroundStyle(DS.Colors.textSecondary)
@@ -74,6 +77,13 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    private static var version: String {
+        let info = Bundle.main.infoDictionary
+        let v = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let b = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(v) (\(b))"
     }
 
     private var solidBinding: Binding<Color> {

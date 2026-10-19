@@ -19,6 +19,9 @@ public enum EpubCSS {
         img,svg,video{max-width:100%!important;height:auto!important;}
         h1,h2,h3,h4{line-height:1.25!important;}
         body mark.rd-hl{background-color:rgba(42,185,133,0.35)!important;color:inherit!important;border-radius:3px;}
+        body mark.rd-hl-yellow{background-color:rgba(240,200,60,0.45)!important;}
+        body mark.rd-hl-blue{background-color:rgba(70,140,230,0.38)!important;}
+        body mark.rd-hl-pink{background-color:rgba(230,100,150,0.38)!important;}
         body mark.rd-find{background-color:rgba(240,177,74,0.55)!important;color:inherit!important;border-radius:3px;}
         a.internal-link{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;}
         a.internal-link.is-unresolved{opacity:.65;text-decoration-style:dotted;}

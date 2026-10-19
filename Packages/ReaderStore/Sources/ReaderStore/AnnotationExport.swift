@@ -6,13 +6,15 @@ public struct AnnotationRecord: Sendable, Equatable {
     public let quote: String
     public let note: String
     public let createdAt: Date
+    public let color: String
 
-    public init(kind: AnnotationKind, label: String, quote: String, note: String, createdAt: Date) {
+    public init(kind: AnnotationKind, label: String, quote: String, note: String, createdAt: Date, color: String = "") {
         self.kind = kind
         self.label = label
         self.quote = quote
         self.note = note
         self.createdAt = createdAt
+        self.color = color
     }
 }
 
@@ -30,7 +32,7 @@ public enum AnnotationExport {
                 out += "\n"
                 if !r.quote.isEmpty { out += r.quote.split(separator: "\n", omittingEmptySubsequences: false).map { "> \($0)" }.joined(separator: "\n") + "\n" }
                 if !r.note.isEmpty { out += (r.quote.isEmpty ? "" : "\n") + r.note + "\n" }
-                if r.quote.isEmpty && r.note.isEmpty { out += "- " + r.label + "\n" } else { out += "\n(" + r.label + ")\n" }
+                if r.quote.isEmpty && r.note.isEmpty { out += "- " + r.label + "\n" } else { out += "\n(" + r.label + (r.color.isEmpty ? "" : ", " + r.color) + ")\n" }
             }
         }
         return out

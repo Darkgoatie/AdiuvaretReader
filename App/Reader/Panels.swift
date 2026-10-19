@@ -18,6 +18,11 @@ struct ReaderSettingsView: View {
                     }
                     .pickerStyle(.segmented)
                 }
+                if prefs.bookScope != nil {
+                    Section {
+                        Toggle("Only for this book", isOn: Binding(get: { prefs.isScoped }, set: { prefs.setScoped($0) }))
+                    } footer: { Text("Keeps this size, font and theme for this book. Other books keep the shared settings.") }
+                }
                 Section("Text") {
                     Picker("Font", selection: $prefs.font) {
                         ForEach(ReadingFont.allCases) { Text($0.title).tag($0) }
@@ -25,6 +30,9 @@ struct ReaderSettingsView: View {
                     slider("Size", value: $prefs.fontSize, range: ReaderLimits.fontSize, label: "\(Int(prefs.fontSize)) pt")
                     slider("Line spacing", value: $prefs.lineSpacing, range: ReaderLimits.lineSpacing, label: String(format: "%.1f", prefs.lineSpacing))
                     slider("Margins", value: $prefs.margin, range: ReaderLimits.margin, label: String(Int(prefs.margin.rounded())))
+                }
+                Section {
+                    Toggle("Keep screen on while reading", isOn: $prefs.keepScreenOn)
                 }
                 Section("Preview") {
                     Text("The quick brown fox jumps over the lazy dog.")
@@ -133,6 +141,13 @@ struct AnnotationsView: View {
                                 if let p = ReadingPosition(encoded: a.locator) { session.go(to: p) }
                                 dismiss()
                             } label: { row(a) }
+                            .contextMenu {
+                                if a.kind == .highlight {
+                                    ForEach(HighlightColor.allCases) { c in
+                                        Button(c.title) { a.colorRaw = c.rawValue; try? context.save() }
+                                    }
+                                }
+                            }
                         }
                         .onDelete { offsets in
                             offsets.forEach { context.delete(annotations[$0]) }
@@ -149,11 +164,20 @@ struct AnnotationsView: View {
     private func row(_ a: BookAnnotation) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack {
-                Image(systemName: icon(a.kind)).foregroundStyle(DS.Colors.accentText)
+                Image(systemName: icon(a.kind)).foregroundStyle(a.kind == .highlight ? tint(a.color) : DS.Colors.accentText)
                 Text(ReadingPosition(encoded: a.locator)?.label(isCode: session.isCode) ?? "").font(DS.Typography.caption).foregroundStyle(DS.Colors.textSecondary)
             }
             if !a.quote.isEmpty { Text(a.quote).font(DS.Typography.subheadline).foregroundStyle(DS.Colors.textPrimary).lineLimit(4) }
             if !a.note.isEmpty { Text(a.note).font(DS.Typography.footnote).foregroundStyle(DS.Colors.textSecondary) }
+        }
+    }
+
+    private func tint(_ c: HighlightColor) -> Color {
+        switch c {
+        case .green: DS.Colors.accentText
+        case .yellow: Color(red: 0.94, green: 0.78, blue: 0.24)
+        case .blue: Color(red: 0.27, green: 0.55, blue: 0.9)
+        case .pink: Color(red: 0.9, green: 0.39, blue: 0.59)
         }
     }
 

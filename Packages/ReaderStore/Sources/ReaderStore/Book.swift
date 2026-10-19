@@ -18,6 +18,7 @@ public final class Book {
     public var isMissing: Bool = false
     /// "library" for the app's own folder, "shared" for the App Group folder shared with the user's other apps.
     public var storage: String = "library"
+    public var isFavorite: Bool = false
 
     public init(title: String, author: String = "", format: BookFormat, relativePath: String) {
         self.title = title

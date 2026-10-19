@@ -39,10 +39,10 @@ struct WebBookView: View {
                             fontFileURL: WebAssets.fontFileURL?.absoluteString)
     }
 
-    private var highlights: [String] {
+    private var highlights: [WebHighlight] {
         annotations.compactMap { a in
             guard a.kind != .bookmark, !a.quote.isEmpty, case .chapter(let i, _)? = ReadingPosition(encoded: a.locator), i == model.chapter else { return nil }
-            return a.quote
+            return WebHighlight(quote: a.quote, color: a.colorRaw)
         }
     }
 }

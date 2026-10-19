@@ -20,4 +20,28 @@ import Foundation
     @Test func emptyHasOnlyTitle() {
         #expect(AnnotationExport.markdown(title: "T", author: "", records: []) == "# T\n")
     }
+
+    @Test func highlightColourShowsInTheLabelOnlyWhenGiven() {
+        let now = Date()
+        let md = AnnotationExport.markdown(title: "T", author: "", records: [
+            AnnotationRecord(kind: .highlight, label: "Chapter 1", quote: "Plain", note: "", createdAt: now),
+            AnnotationRecord(kind: .highlight, label: "Chapter 2", quote: "Coloured", note: "", createdAt: now, color: "yellow"),
+        ])
+        #expect(md.contains("(Chapter 1)"))
+        #expect(md.contains("(Chapter 2, yellow)"))
+    }
+
+    @Test func highlightColoursResolveAndDefaultToGreen() {
+        #expect(HighlightColor.resolve("pink") == .pink)
+        #expect(HighlightColor.resolve("nonsense") == .green)
+        #expect(BookAnnotation(bookID: UUID(), kind: .highlight, locator: "x").color == .green)
+        #expect(BookAnnotation(bookID: UUID(), kind: .highlight, locator: "x", color: .blue).colorRaw == "blue")
+    }
+
+    @Test func storeStaysInTheAppsOwnFolder() {
+        let url = StoreLocation.defaultStoreURL()
+        #expect(url.lastPathComponent == "default.store")
+        #expect(url.path.contains("Application Support"))
+        #expect(!url.path.contains("AppGroup"))
+    }
 }

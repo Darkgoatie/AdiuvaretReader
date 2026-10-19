@@ -1,5 +1,10 @@
 import Foundation
 
+struct WebHighlight: Equatable {
+    let quote: String
+    let color: String
+}
+
 enum WebBridge {
     /// Runs in its own content world, so scripts inside a book cannot see or call it.
     static let script = #"""
@@ -131,7 +136,7 @@ enum WebBridge {
         },
         setHighlights: function (list) {
           clear('rd-hl');
-          for (var i = 0; i < list.length; i++) mark(list[i], 'rd-hl', false);
+          for (var i = 0; i < list.length; i++) mark(list[i].q, 'rd-hl rd-hl-' + list[i].c, false);
         },
         find: function (q) {
           clear('rd-find');
@@ -169,6 +174,12 @@ enum WebBridge {
     static func jsString(_ s: String) -> String {
         guard let data = try? JSONSerialization.data(withJSONObject: [s]), let json = String(data: data, encoding: .utf8) else { return "\"\"" }
         return String(json.dropFirst().dropLast())
+    }
+
+    static func jsHighlights(_ items: [WebHighlight]) -> String {
+        let list = items.map { ["q": $0.quote, "c": $0.color] }
+        guard let data = try? JSONSerialization.data(withJSONObject: list), let json = String(data: data, encoding: .utf8) else { return "[]" }
+        return json
     }
 
     static func jsArray(_ items: [String]) -> String {

@@ -18,6 +18,8 @@ struct ReaderView: View {
     private let prefs = ReaderPreferences.shared
 
     @State private var linked: LinkedNote?
+    @State private var showBacklinks = false
+    @State private var defineTerm: String?
 
     init(book: Book, fragment: String? = nil) {
         self.book = book
@@ -54,7 +56,15 @@ struct ReaderView: View {
         .animation(.easeInOut(duration: 0.2), value: session.chromeVisible)
         .animation(.easeInOut(duration: 0.2), value: toast)
         .onAppear(perform: start)
-        .onDisappear { session.flush(); try? context.save() }
+        .onAppear { prefs.enter(book: book.id); applyIdleTimer() }
+        .onChange(of: prefs.keepScreenOn) { _, _ in applyIdleTimer() }
+        .onDisappear {
+            session.flush(); try? context.save()
+            prefs.leave(book: book.id)
+            #if canImport(UIKit)
+            UIApplication.shared.isIdleTimerDisabled = false
+            #endif
+        }
         .onChange(of: session.jump) { _, jump in
             guard let jump else { return }
             web?.handle(jump)
@@ -65,6 +75,10 @@ struct ReaderView: View {
         .onChange(of: session.toast) { _, v in if let v { say(v); session.toast = nil } }
         .navigationDestination(item: $linked) { ReaderView(book: $0.book, fragment: $0.fragment).id($0.book.id) }
         .sheet(isPresented: $session.showSettings) { ReaderSettingsView().presentationDetents([.medium, .large]) }
+        .sheet(isPresented: $showBacklinks) { BacklinksView(session: session, path: book.relativePath, shared: book.isShared).presentationDetents([.medium, .large]) }
+        #if canImport(UIKit)
+        .sheet(isPresented: Binding(get: { defineTerm != nil }, set: { if !$0 { defineTerm = nil } })) { DefineView(term: defineTerm ?? "") }
+        #endif
         .sheet(isPresented: $session.showContents) { ContentsView(session: session) }
         .sheet(isPresented: $session.showAnnotations) { AnnotationsView(session: session, annotations: annotations) }
         .sheet(isPresented: Binding(get: { session.showSearch && !session.isCode }, set: { session.showSearch = $0 })) { SearchView(session: session) }
@@ -121,6 +135,10 @@ struct ReaderView: View {
                 Button { session.showAnnotations = true } label: { Label("Highlights and notes", systemImage: "highlighter") }
                 Button { toggleBookmark() } label: { Label(hasBookmark ? "Remove bookmark" : "Add bookmark", systemImage: hasBookmark ? "bookmark.slash" : "bookmark") }
                 Button { session.showSettings = true } label: { Label("Appearance", systemImage: "textformat.size") }
+                if book.format == .markdown {
+                    Button { showBacklinks = true } label: { Label("Linked from", systemImage: "link") }
+                }
+                if let url = Services.url(for: book) { ShareLink(item: url) { Label("Open in another app", systemImage: "arrow.up.forward.app") } }
                 if !annotations.isEmpty { ShareLink(item: exportText, subject: Text(book.title)) { Label("Export notes", systemImage: "square.and.arrow.up") } }
             } label: { Label("More", systemImage: "ellipsis.circle") }
         }
@@ -157,8 +175,13 @@ struct ReaderView: View {
 
     private var selectionBar: some View {
         HStack(spacing: Spacing.s) {
-            Button("Highlight") { addHighlight() }
+            Menu("Highlight") {
+                ForEach(HighlightColor.allCases) { c in Button(c.title) { addHighlight(c) } }
+            } primaryAction: { addHighlight(.green) }
             Button("Note") { session.noteDraft = "" }
+            #if canImport(UIKit)
+            if DefineView.canDefine(session.selection) { Button("Define") { defineTerm = session.selection.trimmingCharacters(in: .whitespacesAndNewlines) } }
+            #endif
             Button("Ask") { session.openAssistant() }
             Button("Copy") { copy(session.selection) }
             Spacer()
@@ -194,9 +217,15 @@ struct ReaderView: View {
         try? context.save()
     }
 
-    private func addHighlight() {
+    private func applyIdleTimer() {
+        #if canImport(UIKit)
+        UIApplication.shared.isIdleTimerDisabled = prefs.keepScreenOn
+        #endif
+    }
+
+    private func addHighlight(_ color: HighlightColor) {
         guard let p = session.position, !session.selection.isEmpty else { return }
-        context.insert(BookAnnotation(bookID: book.id, kind: .highlight, locator: p.encoded, quote: clip(session.selection)))
+        context.insert(BookAnnotation(bookID: book.id, kind: .highlight, locator: p.encoded, quote: clip(session.selection), color: color))
         try? context.save()
         session.clearSelection()
         say("Highlight saved")
@@ -226,7 +255,7 @@ struct ReaderView: View {
     private var exportText: String {
         let isCode = book.format == .code
         let records = annotations.map {
-            AnnotationRecord(kind: $0.kind, label: ReadingPosition(encoded: $0.locator)?.label(isCode: isCode) ?? "", quote: $0.quote, note: $0.note, createdAt: $0.createdAt)
+            AnnotationRecord(kind: $0.kind, label: ReadingPosition(encoded: $0.locator)?.label(isCode: isCode) ?? "", quote: $0.quote, note: $0.note, createdAt: $0.createdAt, color: $0.kind == .highlight ? $0.colorRaw : "")
         }
         return AnnotationExport.markdown(title: book.title, author: book.author, records: records)
     }
