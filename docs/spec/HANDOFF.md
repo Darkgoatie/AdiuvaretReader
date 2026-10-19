@@ -1,4 +1,5 @@
 # Handoff
-State: spec approved by user. Task 1 written (project.yml, App/ placeholder library screen, .github/workflows/compile.yml); nothing compiled and no GitHub repo created yet.
-Next: on "build", create Darkgoatie/AdiuvaretReader, push, run compile.yml; then task 2 spike.
-Task 20 (code viewer) added by user after approval.
+State: repo public at Darkgoatie/AdiuvaretReader (made public because private Actions billing failed). Compile run 39273619701 on 26a2db9: package tests 24 pass, iOS and macOS build succeed.
+Done: tasks 1, 3, 4. In progress: 5 (list only), 14 (wallpapers in Settings, shown behind library).
+Next: task 2 spike then 6 (EPUB reading slice), grid layout for task 5.
+Not device-checked: any UI.
