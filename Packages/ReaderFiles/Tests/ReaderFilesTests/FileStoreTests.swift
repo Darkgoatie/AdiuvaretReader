@@ -166,4 +166,43 @@ import Foundation
         let found = LibraryScan.unindexed(files: ["a.epub", "b.pdf", "c.exe", "d/e.txt"], known: ["a.epub"]) { $0.hasSuffix(".pdf") || $0.hasSuffix(".txt") }
         #expect(found == ["b.pdf", "d/e.txt"])
     }
+
+    private func makeSource() throws -> URL {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString).appendingPathComponent("Reading")
+        try FileManager.default.createDirectory(at: dir.appendingPathComponent("sub/deep"), withIntermediateDirectories: true)
+        try Data("a".utf8).write(to: dir.appendingPathComponent("a.txt"))
+        try Data("b".utf8).write(to: dir.appendingPathComponent("sub/b.md"))
+        try Data("c".utf8).write(to: dir.appendingPathComponent("sub/deep/c.pdf"))
+        try Data("h".utf8).write(to: dir.appendingPathComponent(".DS_Store"))
+        return dir
+    }
+
+    @Test func folderImportCopyKeepsOriginals() throws {
+        let src = try makeSource()
+        let s = store()
+        let report = try FolderImport.run(source: src, into: s, move: false)
+        #expect(report == FolderImportReport(destination: "Reading", imported: 3, removedFromSource: 0, failed: 0))
+        #expect(Set(s.allFiles()) == ["Reading/a.txt", "Reading/sub/b.md", "Reading/sub/deep/c.pdf"])
+        #expect(FileManager.default.fileExists(atPath: src.appendingPathComponent("a.txt").path))
+        #expect(try String(contentsOf: s.resolve("Reading/sub/b.md"), encoding: .utf8) == "b")
+    }
+
+    @Test func folderImportMoveRemovesOriginalsAndEmptyFolders() throws {
+        let src = try makeSource()
+        let s = store()
+        let report = try FolderImport.run(source: src, into: s, move: true)
+        #expect(report.imported == 3 && report.removedFromSource == 3 && report.failed == 0)
+        #expect(!FileManager.default.fileExists(atPath: src.appendingPathComponent("a.txt").path))
+        #expect(!FileManager.default.fileExists(atPath: src.appendingPathComponent("sub").path))
+        #expect(FileManager.default.fileExists(atPath: src.path))
+        #expect(s.allFiles().count == 3)
+    }
+
+    @Test func folderImportNeverOverwritesAnExistingFolder() throws {
+        let s = store()
+        _ = try FolderImport.run(source: try makeSource(), into: s, move: false)
+        let second = try FolderImport.run(source: try makeSource(), into: s, move: false)
+        #expect(second.destination == "Reading 2")
+        #expect(s.allFiles().count == 6)
+    }
 }

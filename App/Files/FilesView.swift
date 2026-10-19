@@ -25,6 +25,9 @@ struct FilesView: View {
     @Environment(\.modelContext) private var context
     @State private var externals = Services.externals.folders
     @State private var pickingFolder = false
+    @State private var pendingFolder: URL?
+    @State private var importing = false
+    @State private var importMessage: String?
     @State private var trashCount = Services.files.recentlyDeleted().count
 
     var body: some View {
@@ -45,11 +48,12 @@ struct FilesView: View {
                         NavigationLink(value: ExternalRoute(id: f.id, path: "")) { Label(f.name, systemImage: "externaldrive") }
                             .swipeActions { Button("Remove", role: .destructive) { Services.externals.remove(f.id); externals = Services.externals.folders } }
                     }
-                    Button { pickingFolder = true } label: { Label("Add a folder", systemImage: "plus") }
+                    Button { pickingFolder = true } label: { Label(importing ? "Adding files..." : "Add a folder", systemImage: "plus") }
+                        .disabled(importing)
                 } header: {
-                    Text("Other folders")
+                    Text(externals.isEmpty ? "Add files from a folder" : "Other folders")
                 } footer: {
-                    Text("Folders you add are only read. Copy files in to keep them in the library.")
+                    Text("Add a folder to bring all of its files, with their subfolders, into the library.")
                 }
             }
             .scrollContentBackground(.hidden)
@@ -59,9 +63,40 @@ struct FilesView: View {
         .navigationDestination(for: ExternalRoute.self) { ExternalFolderView(route: $0) }
         .navigationDestination(for: TrashRoute.self) { _ in TrashView() }
         .fileImporter(isPresented: $pickingFolder, allowedContentTypes: [.folder]) { result in
-            if case .success(let url) = result { _ = try? Services.externals.add(url); externals = Services.externals.folders }
+            if case .success(let url) = result { pendingFolder = url }
+        }
+        .confirmationDialog(pendingFolder.map { "Add \"\($0.lastPathComponent)\" to the library?" } ?? "", isPresented: Binding(get: { pendingFolder != nil }, set: { if !$0 { pendingFolder = nil } }), titleVisibility: .visible) {
+            Button("Move files") { startImport(move: true) }
+            Button("Copy files") { startImport(move: false) }
+            Button("Cancel", role: .cancel) { pendingFolder = nil }
+        } message: {
+            Text("Move removes the files from that folder once they are in the library. Copy leaves them there.")
+        }
+        .alert(importMessage ?? "", isPresented: Binding(get: { importMessage != nil }, set: { if !$0 { importMessage = nil } })) {
+            Button("OK", role: .cancel) {}
         }
         .onAppear { trashCount = Services.files.recentlyDeleted().count }
+    }
+
+    private func startImport(move: Bool) {
+        guard let url = pendingFolder else { return }
+        pendingFolder = nil
+        importing = true
+        let store = Services.files
+        Task {
+            let result = await Task.detached { Result { try FolderImport.run(source: url, into: store, move: move) } }.value
+            LibraryService.sync(context)
+            importing = false
+            switch result {
+            case .success(let r):
+                var text = "\(r.imported) \(r.imported == 1 ? "file" : "files") added to \"\(r.destination)\" in the library."
+                if move, r.removedFromSource < r.imported { text += " \(r.imported - r.removedFromSource) could not be removed from the original folder." }
+                if r.failed > 0 { text += " \(r.failed) could not be copied and were left where they were." }
+                importMessage = text
+            case .failure:
+                importMessage = "That folder could not be read."
+            }
+        }
     }
 }
 
