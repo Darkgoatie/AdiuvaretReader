@@ -1,0 +1,79 @@
+name: TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: Upload to TestFlight
+        type: boolean
+        default: true
+
+env:
+  KEY_ID: A4C267SY9T
+  ISSUER_ID: 66854a67-a093-43c2-a3c2-d3910dbbdbd9
+  ASC_APP_ID: "6824579270"
+  FIRST_BUILD: "1"
+
+jobs:
+  build:
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 27
+        run: |
+          X=/Applications/Xcode_27.0.app
+          [ -d "$X" ] || { echo "Xcode 27.0 not found"; exit 1; }
+          sudo xcode-select -s "$X/Contents/Developer"
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Write App Store Connect key
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          [ -n "$ASC_KEY_P8" ] || { echo "Secret ASC_KEY_P8 is not set"; exit 1; }
+          mkdir -p ~/.appstoreconnect/private_keys
+          printf '%s\n' "$ASC_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Package tests
+        run: |
+          mkdir -p build
+          cd Packages
+          set +e
+          xcodebuild test -scheme ReaderPackages-Package -destination 'platform=macOS' > ../build/test.log 2>&1
+          STATUS=$?
+          grep -E "✘|error:|Expectation failed|Test run with|TEST (SUCCEEDED|FAILED)" ../build/test.log | cut -c1-300 | head -60
+          exit $STATUS
+
+      - name: Archive
+        run: |
+          python3 -m venv /tmp/venv && /tmp/venv/bin/pip install --quiet pyjwt cryptography
+          export MARKETING_VERSION=$(grep -m1 MARKETING_VERSION project.yml | sed 's/.*"\(.*\)".*/\1/')
+          BUILD=$(/tmp/venv/bin/python scripts/next_build_number.py)
+          echo "Version $MARKETING_VERSION build $BUILD"
+          xcodebuild -project AdiuvaretReader.xcodeproj -scheme AdiuvaretReader -destination 'generic/platform=iOS' \
+            -configuration Release -archivePath build/Reader.xcarchive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CURRENT_PROJECT_VERSION=$BUILD archive > build/archive.log 2>&1 || { grep -E '\.swift:[0-9]+:[0-9]+: error' build/archive.log | sort -u | head -20; grep -E 'error:|fatal error' build/archive.log | grep -v '\.swift:' | head -10; tail -5 build/archive.log; exit 1; }
+          tail -3 build/archive.log
+
+      - name: Export and sign
+        run: |
+          P8=$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+          xcodebuild -exportArchive -archivePath build/Reader.xcarchive -exportOptionsPlist signing/ExportOptions.plist \
+            -exportPath build/ipa -allowProvisioningUpdates \
+            -authenticationKeyPath "$P8" -authenticationKeyID $KEY_ID -authenticationKeyIssuerID $ISSUER_ID | tail -8
+          ls -l build/ipa
+
+      - name: Upload to TestFlight
+        if: ${{ inputs.upload }}
+        run: |
+          IPA=$(ls build/ipa/*.ipa | head -1)
+          xcrun altool --upload-app --type ios -f "$IPA" --apiKey $KEY_ID --apiIssuer $ISSUER_ID 2>&1 | tail -40

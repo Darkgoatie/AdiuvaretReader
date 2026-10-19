@@ -281,10 +281,10 @@ struct FolderView: View {
 
     private func perform(_ action: (FileStore) throws -> Void) {
         guard let store else { return }
-        do { try action(store) } catch FileStoreError.nameCollision { error = "An item with that name already exists." }
-        catch FileStoreError.invalidName { error = "That name is not allowed." }
-        catch FileStoreError.moveIntoSelf { error = "A folder cannot go inside itself." }
-        catch { error = "The change could not be made." }
+        do { try action(store) } catch FileStoreError.nameCollision { self.error = "An item with that name already exists." }
+        catch FileStoreError.invalidName { self.error = "That name is not allowed." }
+        catch FileStoreError.moveIntoSelf { self.error = "A folder cannot go inside itself." }
+        catch { self.error = "The change could not be made." }
         changed()
     }
 

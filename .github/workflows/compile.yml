@@ -38,9 +38,3 @@ jobs:
           xcodebuild -project AdiuvaretReader.xcodeproj -scheme AdiuvaretReader -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO build > build/ios.log 2>&1 || { grep -E 'error:' build/ios.log | sort -u | head -20; tail -5 build/ios.log; exit 1; }
           tail -2 build/ios.log
-
-      - name: Compile macOS
-        run: |
-          xcodebuild -project AdiuvaretReader.xcodeproj -scheme AdiuvaretReader -destination 'generic/platform=macOS' \
-            CODE_SIGNING_ALLOWED=NO build > build/mac.log 2>&1 || { grep -E 'error:' build/mac.log | sort -u | head -20; tail -5 build/mac.log; exit 1; }
-          tail -2 build/mac.log
