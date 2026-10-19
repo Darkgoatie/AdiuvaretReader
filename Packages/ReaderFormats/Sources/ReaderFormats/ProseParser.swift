@@ -2,7 +2,7 @@ import Foundation
 
 public struct ProseBlock: Identifiable, Equatable, Sendable {
     public enum Kind: Equatable, Sendable {
-        case heading(Int), paragraph, code, listItem, quote, rule
+        case heading(Int), paragraph, code, listItem, quote, rule, math
     }
 
     public let id: Int
@@ -32,6 +32,8 @@ public enum ProseParser {
         var paragraph: [String] = []
         var code: [String] = []
         var inFence = false
+        var inMath = false
+        var math: [String] = []
 
         func add(_ kind: ProseBlock.Kind, _ text: String) { blocks.append(ProseBlock(id: blocks.count, kind: kind, text: text)) }
         func flush() {
@@ -48,6 +50,29 @@ public enum ProseParser {
                 continue
             }
             if inFence { code.append(line); continue }
+            if inMath {
+                if trimmed.hasSuffix("$$") {
+                    let rest = String(trimmed.dropLast(2))
+                    if !rest.isEmpty { math.append(rest) }
+                    add(.math, math.joined(separator: "\n"))
+                    math = []
+                    inMath = false
+                } else {
+                    math.append(line)
+                }
+                continue
+            }
+            if trimmed.hasPrefix("$$") {
+                flush()
+                let rest = String(trimmed.dropFirst(2))
+                if rest.count >= 2, rest.hasSuffix("$$") {
+                    add(.math, String(rest.dropLast(2)).trimmingCharacters(in: .whitespaces))
+                } else {
+                    inMath = true
+                    math = rest.isEmpty ? [] : [rest]
+                }
+                continue
+            }
             if trimmed.isEmpty { flush(); continue }
             if let level = headingLevel(trimmed) {
                 flush()
@@ -63,6 +88,7 @@ public enum ProseParser {
             }
         }
         if inFence { add(.code, code.joined(separator: "\n")) }
+        if inMath { add(.math, math.joined(separator: "\n")) }
         flush()
         return blocks
     }

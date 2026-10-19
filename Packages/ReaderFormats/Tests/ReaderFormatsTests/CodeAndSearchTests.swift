@@ -79,4 +79,58 @@ import Foundation
         let html = ProseHTML.page(title: "t", blocks: ProseParser.plain("a < b\nsecond *line*"), markdown: false)
         #expect(html.contains("<p>a &lt; b<br>second *line*</p>"))
     }
+
+    @Test func displayMathBlocks() {
+        let blocks = ProseParser.markdown("Before\n\n$$\nx^2 + y^2\n= z^2\n$$\n\n$$a_b$$\n\nAfter")
+        #expect(blocks.map(\.kind) == [.paragraph, .math, .math, .paragraph])
+        #expect(blocks[1].text == "x^2 + y^2\n= z^2")
+        #expect(blocks[2].text == "a_b")
+    }
+
+    @Test func inlineMathIsNotMangledByMarkdown() {
+        let md = "Energy $E_k = *m*v^2$ and \\(a_1 * b_2\\) with **bold** and a price of $5 and $6."
+        let html = ProseHTML.page(title: "t", blocks: ProseParser.markdown(md), markdown: true)
+        #expect(html.contains("$E_k = *m*v^2$"))
+        #expect(html.contains("\\(a_1 * b_2\\)"))
+        #expect(html.contains("<strong>bold</strong>"))
+        #expect(!html.contains("<em>m</em>"))
+        #expect(html.contains("$5 and $6"))
+    }
+
+    @Test func mathBlockHTML() {
+        let html = ProseHTML.page(title: "t", blocks: ProseParser.markdown("$$\na < b\n$$"), markdown: true)
+        #expect(html.contains("<div class=\"math-block\">$$a &lt; b$$</div>"))
+    }
+
+    @Test func latexConvertsToMarkdown() {
+        let tex = """
+        \\documentclass{article}
+        \\title{My Notes}
+        \\author{A. Writer}
+        \\begin{document}
+        \\maketitle
+        \\section{Intro} % a comment
+        Some \\textbf{bold} and \\emph{soft} text with $x^2$.
+        \\begin{itemize}
+        \\item one
+        \\item two
+        \\end{itemize}
+        \\begin{equation}
+        E = mc^2
+        \\end{equation}
+        \\end{document}
+        """
+        let md = LatexConverter.toMarkdown(tex)
+        #expect(md.hasPrefix("# My Notes\n\nA. Writer"))
+        #expect(md.contains("## Intro"))
+        #expect(!md.contains("a comment"))
+        #expect(md.contains("**bold**"))
+        #expect(md.contains("*soft*"))
+        #expect(md.contains("- one"))
+        #expect(md.contains("$$\nE = mc^2\n$$"))
+        #expect(!md.contains("documentclass"))
+        let blocks = ProseParser.markdown(md)
+        #expect(blocks.contains { $0.kind == .math })
+        #expect(blocks.filter { $0.kind == .listItem }.count == 2)
+    }
 }

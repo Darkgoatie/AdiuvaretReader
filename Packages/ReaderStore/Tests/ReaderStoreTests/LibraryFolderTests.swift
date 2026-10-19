@@ -14,6 +14,7 @@ import Foundation
         #expect(BookFormat.detect(fileName: "a.pdf") == .pdf)
         #expect(BookFormat.detect(fileName: "a.md") == .markdown)
         #expect(BookFormat.detect(fileName: "main.rs") == .code)
+        #expect(BookFormat.detect(fileName: "paper.TEX") == .latex)
         #expect(BookFormat.detect(fileName: "a.exe") == nil)
         #expect(BookFormat.detect(fileName: "noext") == nil)
     }

@@ -32,14 +32,16 @@ final class WebBookModel {
                 let epub = try await Task.detached { try EpubBook.open(at: url, cache: cache) }.value
                 chapters = epub.spine.indices.map { epub.chapterURL($0) }
                 session.toc = epub.toc.map { TocItem(id: $0.id, title: $0.title, position: .chapter(index: $0.spineIndex, fraction: 0)) }
-            case .text, .markdown:
-                let isMarkdown = session.book.format == .markdown
+            case .text, .markdown, .latex:
+                let format = session.book.format
+                let isMarkdown = format != .text
                 let title = session.book.title
                 let page = WebAssets.pageURL(for: id)
                 try await Task.detached {
                     let data = try Data(contentsOf: url)
                     let source = String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)
-                    let blocks = isMarkdown ? ProseParser.markdown(source) : ProseParser.plain(source)
+                    let prepared = format == .latex ? LatexConverter.toMarkdown(source) : source
+                    let blocks = isMarkdown ? ProseParser.markdown(prepared) : ProseParser.plain(prepared)
                     try ProseHTML.page(title: title, blocks: blocks, markdown: isMarkdown).write(to: page, atomically: true, encoding: .utf8)
                 }.value
                 chapters = [page]

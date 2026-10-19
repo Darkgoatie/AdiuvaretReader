@@ -73,7 +73,7 @@ struct ReaderView: View {
 
     @ViewBuilder private var content: some View {
         switch book.format {
-        case .epub, .text, .markdown:
+        case .epub, .text, .markdown, .latex:
             if let web { WebBookView(model: web, annotations: annotations) }
         case .pdf:
             if let pdf { PDFBookView(model: pdf) }
@@ -86,7 +86,7 @@ struct ReaderView: View {
         guard web == nil, pdf == nil, code == nil else { return }
         book.lastOpenedAt = Date()
         switch book.format {
-        case .epub, .text, .markdown: web = WebBookModel(session: session)
+        case .epub, .text, .markdown, .latex: web = WebBookModel(session: session)
         case .pdf: pdf = PDFBookModel(session: session)
         case .code: code = CodeBookModel(session: session)
         }

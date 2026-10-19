@@ -29,12 +29,15 @@ struct RootView: View {
             #endif
         } detail: {
             NavigationStack {
-                switch section ?? .library {
-                case .library: LibraryView(open: { openBook = $0 })
-                case .files: FilesView(open: { openBook = $0 })
+                Group {
+                    switch section ?? .library {
+                    case .library: LibraryView(open: { openBook = $0 })
+                    case .files: FilesView(open: { openBook = $0 })
+                    }
                 }
+                .navigationDestination(item: $openBook) { ReaderView(book: $0).id($0.id) }
             }
-            .navigationDestination(item: $openBook) { ReaderView(book: $0).id($0.id) }
+            .id(section)
         }
         .tint(DS.Colors.accent)
         .font(DS.Typography.body)

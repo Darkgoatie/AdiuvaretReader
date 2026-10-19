@@ -67,6 +67,9 @@ struct WebReaderView: PlatformRepresentable {
             controller.removeAllUserScripts()
             let hide = "(function(){document.documentElement.style.background='\(parent.ground)';})();" + WebBridge.hideUntilReady
             controller.addUserScript(WKUserScript(source: hide, injectionTime: .atDocumentStart, forMainFrameOnly: true, in: .defaultClient))
+            if !WebAssets.katexScript.isEmpty {
+                controller.addUserScript(WKUserScript(source: WebAssets.katexScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: .defaultClient))
+            }
             controller.addUserScript(WKUserScript(source: WebBridge.script, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: .defaultClient))
             self.css = css
         }
@@ -108,6 +111,10 @@ struct WebReaderView: PlatformRepresentable {
         func finishLoad(_ webView: WKWebView) async {
             func run(_ js: String) async { _ = try? await webView.evaluateJavaScript(js, in: nil, contentWorld: .defaultClient) }
             await run("window.rd.setCSS(\(WebBridge.jsString(css)))")
+            if let style = WebAssets.katexStyleURL {
+                await run("window.rd.link(\(WebBridge.jsString(style.absoluteString)))")
+            }
+            if loadedURL?.path.contains("/pages/") == true { await run("window.rd.math()") }
             highlights = parent.highlights
             await run("window.rd.setHighlights(\(WebBridge.jsArray(highlights)))")
             await perform(current, in: webView)

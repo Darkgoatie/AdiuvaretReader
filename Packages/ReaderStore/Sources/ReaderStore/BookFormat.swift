@@ -1,7 +1,7 @@
 import Foundation
 
 public enum BookFormat: String, Codable, CaseIterable, Sendable {
-    case epub, pdf, text, markdown, code
+    case epub, pdf, text, markdown, latex, code
 
     private static let codeExtensions: Set<String> = [
         "swift", "py", "js", "ts", "tsx", "jsx", "json", "yaml", "yml", "toml", "html", "css", "c", "h", "cpp", "hpp",
@@ -16,6 +16,7 @@ public enum BookFormat: String, Codable, CaseIterable, Sendable {
         case "pdf": return .pdf
         case "txt", "text": return .text
         case "md", "markdown": return .markdown
+        case "tex", "latex": return .latex
         default: return codeExtensions.contains(ext) ? .code : nil
         }
     }
@@ -26,6 +27,7 @@ public enum BookFormat: String, Codable, CaseIterable, Sendable {
         case .pdf: "PDF"
         case .text: "Text"
         case .markdown: "Markdown"
+        case .latex: "LaTeX"
         case .code: "Code"
         }
     }
@@ -34,7 +36,7 @@ public enum BookFormat: String, Codable, CaseIterable, Sendable {
         switch self {
         case .epub: "book.closed"
         case .pdf: "doc.richtext"
-        case .text, .markdown: "doc.text"
+        case .text, .markdown, .latex: "doc.text"
         case .code: "chevron.left.forwardslash.chevron.right"
         }
     }

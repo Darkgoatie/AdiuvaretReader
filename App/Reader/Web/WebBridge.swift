@@ -91,7 +91,44 @@ enum WebBridge {
           var el = document.getElementById(id) || document.getElementsByName(id)[0];
           if (el) el.scrollIntoView();
         },
-        text: function () { return document.body ? document.body.innerText : ''; },
+        text: function () {
+          if (!document.body) return '';
+          if (!document.querySelector('.katex')) return document.body.innerText;
+          var box = document.createElement('div');
+          box.style.cssText = 'position:absolute;left:-99999px;top:0;width:600px;';
+          var clone = document.body.cloneNode(true);
+          var ks = clone.querySelectorAll('.katex');
+          for (var i = 0; i < ks.length; i++) {
+            var a = ks[i].querySelector('annotation');
+            ks[i].parentNode.replaceChild(document.createTextNode(a ? a.textContent : ks[i].textContent), ks[i]);
+          }
+          box.appendChild(clone);
+          document.body.appendChild(box);
+          var out = clone.innerText;
+          document.body.removeChild(box);
+          return out;
+        },
+        link: function (href) {
+          if (document.getElementById('rd-katex-css')) return;
+          var l = document.createElement('link');
+          l.id = 'rd-katex-css'; l.rel = 'stylesheet'; l.href = href;
+          (document.head || document.documentElement).appendChild(l);
+        },
+        math: function () {
+          if (!window.renderMathInElement || !document.body) return;
+          try {
+            window.renderMathInElement(document.body, {
+              delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '\\[', right: '\\]', display: true },
+                { left: '\\(', right: '\\)', display: false },
+                { left: '$', right: '$', display: false }
+              ],
+              throwOnError: false,
+              ignoredTags: ['script', 'style', 'textarea', 'pre', 'code', 'noscript']
+            });
+          } catch (e) {}
+        },
         setHighlights: function (list) {
           clear('rd-hl');
           for (var i = 0; i < list.length; i++) mark(list[i], 'rd-hl', false);
