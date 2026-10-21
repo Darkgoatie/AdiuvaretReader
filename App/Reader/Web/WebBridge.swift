@@ -121,6 +121,16 @@ enum WebBridge {
         },
         math: function () {
           if (!window.renderMathInElement || !document.body) return;
+          var sheet = document.getElementById('rd-katex-css');
+          if (sheet && !sheet.sheet && !sheet.dataset.waiting) {
+            sheet.dataset.waiting = '1';
+            var again = function () { delete sheet.dataset.waiting; window.rd.math(); };
+            sheet.addEventListener('load', again);
+            sheet.addEventListener('error', again);
+            return;
+          }
+          if (document.body.dataset.rdMath) return;
+          document.body.dataset.rdMath = '1';
           try {
             window.renderMathInElement(document.body, {
               delimiters: [

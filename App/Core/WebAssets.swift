@@ -37,11 +37,14 @@ enum WebAssets {
         let fonts = dir.appendingPathComponent("fonts", isDirectory: true)
         let css = dir.appendingPathComponent("katex.min.css")
         let fm = FileManager.default
-        if fm.fileExists(atPath: css.path) { return css }
+        let bundledFonts = Bundle.main.urls(forResourcesWithExtension: "woff2", subdirectory: nil) ?? []
+        let have = (try? fm.contentsOfDirectory(atPath: fonts.path))?.count ?? 0
+        if fm.fileExists(atPath: css.path), have >= bundledFonts.count { return css }
+        try? fm.removeItem(at: dir)
         guard let source = Bundle.main.url(forResource: "katex.min", withExtension: "css") else { return nil }
         try? fm.createDirectory(at: fonts, withIntermediateDirectories: true)
         try? fm.copyItem(at: source, to: css)
-        for f in Bundle.main.urls(forResourcesWithExtension: "woff2", subdirectory: nil) ?? [] {
+        for f in bundledFonts {
             try? fm.copyItem(at: f, to: fonts.appendingPathComponent(f.lastPathComponent))
         }
         return fm.fileExists(atPath: css.path) ? css : nil

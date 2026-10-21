@@ -11,12 +11,13 @@ public enum EpubCSS {
         css += """
         html{background:\(ground)!important;-webkit-text-size-adjust:none;}
         body{background:\(ground)!important;color:\(text)!important;font-family:\(fontStack)!important;font-size:\(Int(fontSize))px!important;line-height:\(lineHeight)!important;padding:24px \(Int(sidePadding))px 120px!important;margin:0 auto!important;max-width:44em;overflow-wrap:break-word;}
-        body *{color:inherit!important;background-color:transparent!important;}
+        body *:not(.katex):not(.katex *){color:inherit!important;background-color:transparent!important;}
         body *:not(pre):not(code):not(kbd):not(samp):not(.katex):not(.katex *){font-family:inherit!important;}
         .math-block{overflow-x:auto;overflow-y:hidden;padding:4px 0;}
         .katex{font-size:1.08em;}
         a,a *{color:\(link)!important;}
-        img,svg,video{max-width:100%!important;height:auto!important;}
+        img,video,svg:not(.katex svg){max-width:100%!important;height:auto!important;}
+        .katex-mathml{position:absolute!important;clip:rect(1px,1px,1px,1px)!important;padding:0!important;border:0!important;height:1px!important;width:1px!important;overflow:hidden!important;}
         h1,h2,h3,h4{line-height:1.25!important;}
         body mark.rd-hl{background-color:rgba(42,185,133,0.35)!important;color:inherit!important;border-radius:3px;}
         body mark.rd-hl-yellow{background-color:rgba(240,200,60,0.45)!important;}
