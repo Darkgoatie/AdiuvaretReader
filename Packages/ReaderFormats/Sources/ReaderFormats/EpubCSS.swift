@@ -11,7 +11,7 @@ public enum EpubCSS {
         css += """
         html{background:\(ground)!important;-webkit-text-size-adjust:none;}
         body{background:\(ground)!important;color:\(text)!important;font-family:\(fontStack)!important;font-size:\(Int(fontSize))px!important;line-height:\(lineHeight)!important;padding:24px \(Int(sidePadding))px 120px!important;margin:0 auto!important;max-width:44em;overflow-wrap:break-word;}
-        body *:not(.katex):not(.katex *){color:inherit!important;background-color:transparent!important;}
+        body *:where(:not(.katex, .katex *)){color:inherit!important;background-color:transparent!important;}
         body *:not(pre):not(code):not(kbd):not(samp):not(.katex):not(.katex *){font-family:inherit!important;}
         .math-block{overflow-x:auto;overflow-y:hidden;padding:4px 0;}
         .katex{font-size:1.08em;}

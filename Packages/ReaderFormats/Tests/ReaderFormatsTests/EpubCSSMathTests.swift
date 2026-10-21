@@ -13,6 +13,8 @@ import Testing
     @Test func pageRulesDoNotResizeOrRecolourKatexDrawings() {
         #expect(css.contains("svg:not(.katex svg)"))
         #expect(!css.contains("img,svg,video{"))
-        #expect(css.contains("body *:not(.katex):not(.katex *){color:inherit!important"))
+        // :where() keeps the rule at zero specificity, so highlights, tags and callouts can still set their own background.
+        #expect(css.contains("body *:where(:not(.katex, .katex *)){color:inherit!important"))
+        #expect(!css.contains("body *:not(.katex):not(.katex *){"))
     }
 }
