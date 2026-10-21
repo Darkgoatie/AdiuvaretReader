@@ -56,7 +56,7 @@ import Testing
     }
 
     @Test func structureCellsFollowTheNotesDefaultStyle() {
-        let html = render("---\nchem-style: bw\n---\n| A |\n|---|\n| smiles:CCO |")
+        let html = ObsidianMarkdown.page(title: "n", source: "---\nchem-style: bw\n---\n| A |\n|---|\n| smiles:CCO |", ctx: .empty)
         #expect(html.contains("data-style=\"bw\""))
     }
 
