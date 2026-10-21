@@ -154,14 +154,18 @@ public enum ObsidianMarkdown {
         var t = line.trimmingCharacters(in: .whitespaces)
         if t.hasPrefix("|") { t.removeFirst() }
         if t.hasSuffix("|") && !t.hasSuffix("\\|") { t.removeLast() }
+        let chars = Array(t)
+        let mask = TableCell.mathMask(chars)
         var cells: [String] = []
         var cur = ""
-        var prev: Character = " "
         var depth = 0
-        for ch in t {
+        var i = 0
+        while i < chars.count {
+            let ch = chars[i]
+            if mask[i] { cur.append(ch); i += 1; continue }
             if ch == "[" { depth += 1 } else if ch == "]" { depth = max(0, depth - 1) }
-            if ch == "|", prev != "\\", depth == 0 { cells.append(cur); cur = "" } else { cur.append(ch) }
-            prev = ch
+            if ch == "|", depth == 0, !(i > 0 && chars[i - 1] == "\\") { cells.append(cur); cur = "" } else { cur.append(ch) }
+            i += 1
         }
         cells.append(cur)
         return cells.map { $0.replacingOccurrences(of: "\\|", with: "|") }
@@ -268,7 +272,17 @@ public enum ObsidianMarkdown {
                 while i < lines.count, !isBlank(lines[i]), isTableRow(lines[i]) { rows.append(splitRow(lines[i].trimmingCharacters(in: .whitespaces))); i += 1 }
                 func cell(_ tag: String, _ text: String, _ n: Int) -> String {
                     let a = n < aligns.count && !aligns[n].isEmpty ? " style=\"text-align:\(aligns[n])\"" : ""
-                    return "<\(tag)\(a)>\(inline(text.trimmingCharacters(in: .whitespaces)))</\(tag)>"
+                    let trimmed = text.trimmingCharacters(in: .whitespaces)
+                    let header = n < head.count ? head[n] : ""
+                    switch TableCell.classify(trimmed, header: header, isHeader: tag == "th") {
+                    case .molecule(let src):
+                        return "<\(tag)\(a)><span class=\"chem-cell\" data-kind=\"mol\" data-style=\"\(ctx.chemStyle)\" data-src=\"\(ObsidianInline.attr(src))\">\(ObsidianInline.esc(src))</span></\(tag)>"
+                    case .reaction(let src):
+                        return "<\(tag)\(a)><span class=\"chem-cell\" data-kind=\"rxn\" data-style=\"\(ctx.chemStyle)\" data-src=\"\(ObsidianInline.attr(src))\">\(ObsidianInline.esc(src))</span></\(tag)>"
+                    case .text:
+                        let body = TableCell.bareLatex(trimmed).map { "$" + $0 + "$" } ?? trimmed
+                        return "<\(tag)\(a)>\(inline(body))</\(tag)>"
+                    }
                 }
                 html += "<div class=\"ob-table\"><table><thead><tr>" + head.enumerated().map { cell("th", $1, $0) }.joined() + "</tr></thead><tbody>\n"
                 for r in rows { html += "<tr>" + (0..<head.count).map { cell("td", $0 < r.count ? r[$0] : "", $0) }.joined() + "</tr>\n" }

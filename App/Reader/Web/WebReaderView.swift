@@ -131,14 +131,19 @@ struct WebReaderView: PlatformRepresentable {
 
         /// Draws molecule blocks with RDKit. The engine is sent to the page only when the page has such a block.
         func drawMolecules(in webView: WKWebView) async {
-            let has = try? await webView.evaluateJavaScript("!!document.querySelector('.chem-block')", in: nil, contentWorld: .defaultClient) as? Bool
+            let has = try? await webView.evaluateJavaScript("!!document.querySelector('.chem-block, .chem-cell')", in: nil, contentWorld: .defaultClient) as? Bool
             guard has == true, !WebAssets.chemScript.isEmpty else { return }
             _ = try? await webView.evaluateJavaScript("window.__rdDark = \(parent.dark)", in: nil, contentWorld: .defaultClient)
             _ = try? await webView.evaluateJavaScript(WebAssets.chemScript, in: nil, contentWorld: .defaultClient)
             for chunk in WebAssets.chemWasmChunks() {
                 _ = try? await webView.evaluateJavaScript("window.rdChemPush('\(chunk)')", in: nil, contentWorld: .defaultClient)
             }
-            _ = try? await webView.callAsyncJavaScript("return await window.rdChem();", arguments: [:], in: nil, contentWorld: .defaultClient)
+            let first = try? await webView.callAsyncJavaScript("return await window.rdChem();", arguments: [:], in: nil, contentWorld: .defaultClient) as? Int
+            // One more try after a failed start, so a single bad moment does not leave the page without drawings.
+            if first == -1 {
+                try? await Task.sleep(for: .seconds(2.2))
+                _ = try? await webView.callAsyncJavaScript("return await window.rdChem();", arguments: [:], in: nil, contentWorld: .defaultClient)
+            }
         }
 
         func perform(_ request: WebRequest?, in webView: WKWebView) async {

@@ -274,6 +274,8 @@ Cn1cnc2c1c(=O)n(C)c(=O)n2C
 | `size` | `small` (200), `medium` (300), `large` (420) or a number | 300 | image width in px |
 | `width` | integer, `px` allowed | 300 | width in px; clamped to 120..700. Height is 75% of width |
 | `title` (aliases `caption`, `name`) | text | none | heading above the drawing |
+| `arrow` | `forward`, `reversible` (also `equilibrium`, `both`, `<=>`, `<->`), `back` (also `backward`, `left`, `<-`) | forward | arrow shape of a reaction (see 8.7) |
+| `conditions` (aliases `condition`, `label`) | text | none | text on the reaction arrow, `above \| below` (see 8.7) |
 | `highlight` | atom indices separated by commas or spaces | none | highlights those atoms; use `numbers: true` first to learn the indices |
 
 Unknown keys end the header (for SMILES the line is then treated as a molecule). Booleans accept `true yes on 1 show`; anything else is false.
@@ -349,6 +351,47 @@ M  END
 - Use aromatic lowercase (`c1ccccc1`) or Kekule (`C1=CC=CC=C1`); both work.
 - Do not put a name where only a molecule is allowed (`aspirin` is not a SMILES). Put names after a space as captions.
 - One idea per block. Use `title:` for a heading.
+
+### 8.7 Reactions
+
+A line of the form `reactants>agents>products` in a `smiles` block is drawn as a reaction scheme: structures joined by `+`, an arrow, and the products. When every line of the block is a reaction the whole block is drawn as schemes.
+
+````
+```smiles
+conditions: H2SO4 | 80 deg C
+arrow: reversible
+CC(=O)O.OCC>>CC(=O)OCC.O
+```
+````
+
+- Separate molecules on one side with `.`. A number in front of a molecule is its coefficient: `2CCO.O=O>>...`.
+- Agents (catalysts, solvents) go between the two `>`. Small structures drawn above the arrow: `CCO>[Cr]>CC=O`.
+- `conditions:` writes text on the arrow. `above | below` puts text on both sides. In the text, digits after a letter become subscripts (`H2SO4`), `+` and `-` after a name become charges (`H+`, `SO4 2-`), and `hv`, `Delta`, `deg` become the symbols hν, Δ and °.
+- One reaction per line, one line per step. Do not chain steps (`A>B>C>D` is not a reaction). Use a caption after a space as in other blocks: `CCO>>CC=O oxidation`.
+- Every structure is drawn at the same scale and in the chosen `style`. A SMILES that cannot be read shows the red "Could not read ..." line under the block.
+
+### 8.8 Structures and reactions in table cells
+
+A table cell can hold a structure or a reaction.
+
+```
+| Compound | Structure | Formation |
+|:---------|:----------|:----------|
+| Aspirin  | smiles:CC(=O)Oc1ccccc1C(=O)O | rxn:CC(=O)Oc1ccccc1C(=O)O.OCC>>CC(=O)OCC.O |
+```
+
+- Prefixes: `smiles:` or `smi:` for a structure; `rxn:`, `reaction:` or `reaktion:` for a reaction. Backticks around the whole cell are allowed.
+- A column whose header is `SMILES` (also `SMI`, `Canonical SMILES`, `Isomeric SMILES`, `SMILES string`) holds structures without a prefix. A header cell is never drawn as a structure.
+- A reaction written as only SMILES characters (`CC>>CCO`) is recognised without a prefix.
+- No spaces inside the notation. A cell with spaces stays text.
+- Cells use the note's `chem-style` property. There are no per-cell options.
+- Structures are drawn at about 140 px wide; reactions scale down to fit the column. Table cells wrap long text inside their own column.
+
+### 8.9 Formulas in table cells
+
+- `$x^2$`, `$\\frac{a}{b}$` and `\\ce{...}` inside `$...$` are typeset inside the cell, as in text.
+- A cell holding only LaTeX with no dollar signs, such as `\\frac{a}{b}` or `x \\to \\infty`, is typeset too, but only if every command is a known math command and no word of 4 or more letters stands outside a command. A path like `C:\\Users\\x` stays text.
+- A `|` inside a formula (`$|x|$`, `$P(A|B)$`) does not split the cell. Write `\\|` for a literal bar in text. Prices such as `$5` are not formulas.
 
 ## 9. Reader links (from other apps)
 

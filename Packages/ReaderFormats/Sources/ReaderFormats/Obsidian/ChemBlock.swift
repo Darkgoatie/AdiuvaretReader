@@ -12,7 +12,7 @@ public struct ChemBlock: Equatable, Sendable {
     ]
     static let optionKeys: Set<String> = [
         "style", "hydrogens", "h", "numbers", "atom-numbers", "width", "size", "title", "caption", "name",
-        "highlight", "stereo", "cip",
+        "highlight", "stereo", "cip", "arrow", "conditions", "condition", "label",
     ]
     static let sizes: [String: Int] = ["small": 200, "medium": 300, "large": 420]
     public static let widthRange = 120...700
@@ -27,6 +27,10 @@ public struct ChemBlock: Equatable, Sendable {
     public var highlight: [Int]
     public var title: String
     public var body: String
+    /// Arrow shape of a reaction: forward, reversible or back.
+    public var arrow = "forward"
+    /// Text on the reaction arrow, "above | below".
+    public var conditions = ""
     /// The style that was asked for but is not known, so the block can say it fell back.
     public var unknownStyle: String?
 
@@ -92,16 +96,38 @@ public struct ChemBlock: Equatable, Sendable {
                 width = min(max(n, ChemBlock.widthRange.lowerBound), ChemBlock.widthRange.upperBound)
             }
         case "title", "caption", "name": title = value
+        case "arrow":
+            switch value.lowercased() {
+            case "reversible", "equilibrium", "both", "<=>", "<->": arrow = "reversible"
+            case "back", "backward", "left", "<-": arrow = "back"
+            default: arrow = "forward"
+            }
+        case "conditions", "condition", "label": conditions = value
         case "highlight":
             highlight = value.split(whereSeparator: { $0 == "," || $0 == " " }).compactMap { Int($0) }.filter { $0 >= 0 && $0 < 10_000 }
         default: break
         }
     }
 
+    /// `reactants>agents>products`: two `>` and something on both ends. A SMILES never contains `>` inside a molecule.
+    public static func isReactionLine(_ line: String) -> Bool {
+        let parts = line.split(separator: ">", omittingEmptySubsequences: false)
+        return parts.count == 3 && !parts[0].trimmingCharacters(in: .whitespaces).isEmpty && !parts[2].trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// True when the block is SMILES and every line is a reaction.
+    public var isReaction: Bool {
+        guard !isMol else { return false }
+        let lines = body.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        return !lines.isEmpty && lines.allSatisfy { ChemBlock.isReactionLine(String($0.split(whereSeparator: { $0.isWhitespace }).first ?? "")) }
+    }
+
     public func html() -> String {
         let esc = ObsidianInline.esc
         var attrs = "data-lang=\"\(isMol ? "mol" : "smiles")\" data-style=\"\(style)\" data-width=\"\(width)\""
         if let hydrogens { attrs += " data-hydrogens=\"\(hydrogens)\"" }
+        if isReaction { attrs += " data-reaction=\"1\" data-arrow=\"\(arrow)\"" }
+        if !conditions.isEmpty { attrs += " data-conditions=\"\(ObsidianInline.attr(conditions))\"" }
         if numbers { attrs += " data-numbers=\"1\"" }
         if stereo { attrs += " data-stereo=\"1\"" }
         if !highlight.isEmpty { attrs += " data-highlight=\"\(highlight.map(String.init).joined(separator: ","))\"" }
