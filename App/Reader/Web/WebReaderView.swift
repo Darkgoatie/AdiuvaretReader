@@ -118,11 +118,25 @@ struct WebReaderView: PlatformRepresentable {
             if let style = WebAssets.katexStyleURL {
                 await run("window.rd.link(\(WebBridge.jsString(style.absoluteString)))")
             }
-            if loadedURL?.path.contains("/pages/") == true { await run("window.rd.math()") }
+            if loadedURL?.path.contains("/pages/") == true {
+                await run("window.rd.math()")
+                await drawMolecules(in: webView)
+            }
             highlights = parent.highlights
             await run("window.rd.setHighlights(\(WebBridge.jsHighlights(highlights)))")
             await perform(current, in: webView)
             await run("window.rd.show()")
+        }
+
+        /// Draws molecule blocks with RDKit. The engine is sent to the page only when the page has such a block.
+        func drawMolecules(in webView: WKWebView) async {
+            let has = try? await webView.evaluateJavaScript("!!document.querySelector('.chem-block')", in: nil, contentWorld: .defaultClient) as? Bool
+            guard has == true, !WebAssets.chemScript.isEmpty else { return }
+            _ = try? await webView.evaluateJavaScript(WebAssets.chemScript, in: nil, contentWorld: .defaultClient)
+            for chunk in WebAssets.chemWasmChunks() {
+                _ = try? await webView.evaluateJavaScript("window.rdChemPush('\(chunk)')", in: nil, contentWorld: .defaultClient)
+            }
+            _ = try? await webView.callAsyncJavaScript("return await window.rdChem();", arguments: [:], in: nil, contentWorld: .defaultClient)
         }
 
         func perform(_ request: WebRequest?, in webView: WKWebView) async {

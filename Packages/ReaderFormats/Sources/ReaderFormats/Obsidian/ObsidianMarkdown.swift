@@ -15,6 +15,8 @@ public enum ObsidianMarkdown {
     public static func page(title: String, source: String, ctx: ObsidianContext) -> String {
         let (props, body) = Frontmatter.split(source.replacingOccurrences(of: "\r\n", with: "\n"))
         var html = propertiesHTML(props)
+        var ctx = ctx
+        if let raw = props.first(where: { $0.key.lowercased() == "chem-style" })?.values.first, let style = ChemBlock.normalizeStyle(raw) { ctx.chemStyle = style }
         html += renderBody(body, ctx: ctx)
         return "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>\(ObsidianInline.esc(title))</title></head><body class=\"obsidian\">\n\(html)</body></html>"
     }
@@ -198,7 +200,9 @@ public enum ObsidianMarkdown {
                 while i < lines.count, !lines[i].trimmingCharacters(in: .whitespaces).hasPrefix(f.marker) { code.append(lines[i]); i += 1 }
                 i += 1
                 let body = code.joined(separator: "\n")
-                if f.lang.lowercased() == "mermaid" {
+                if let chem = ChemBlock.make(lang: f.lang, body: body, defaultStyle: ctx.chemStyle) {
+                    html += chem.html()
+                } else if f.lang.lowercased() == "mermaid" {
                     html += "<pre class=\"ob-mermaid\"><code>\(ObsidianInline.esc(body))</code></pre>\n<p class=\"ob-note\">Diagram source (diagrams are not drawn in the reader)</p>\n"
                 } else {
                     let cls = f.lang.isEmpty ? "" : " class=\"language-\(ObsidianInline.attr(f.lang))\""

@@ -9,6 +9,8 @@ public struct ObsidianContext: Sendable {
     /// Lines of another note, for `![[Note]]` embeds. Nil when it cannot be read.
     public var readNote: @Sendable (String) -> String?
     public var depth = 0
+    /// The chem-style property of the note, the default for molecule blocks.
+    public var chemStyle = "skeletal"
 
     public init(index: VaultIndex, currentPath: String, fileURL: @escaping @Sendable (String) -> String?, readNote: @escaping @Sendable (String) -> String?) {
         self.index = index

@@ -50,13 +50,28 @@ enum WebAssets {
         return fm.fileExists(atPath: css.path) ? css : nil
     }()
 
-    /// katex.min.js and auto-render.min.js joined into one script for the reader's own content world.
+    /// RDKit's JavaScript wrapper and the drawing script. Read only when a page has a molecule block.
+    static let chemScript: String = {
+        func read(_ name: String) -> String {
+            Bundle.main.url(forResource: name, withExtension: "js").flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
+        }
+        let r = read("RDKit_minimal"), c = read("chem")
+        return r.isEmpty || c.isEmpty ? "" : r + "\n;\n" + c
+    }()
+
+    /// RDKit's WebAssembly module as base64 pieces, small enough to hand to the page one call at a time.
+    static func chemWasmChunks(size: Int = 786_432) -> [String] {
+        guard let url = Bundle.main.url(forResource: "RDKit_minimal", withExtension: "wasm"), let data = try? Data(contentsOf: url, options: .mappedIfSafe) else { return [] }
+        return stride(from: 0, to: data.count, by: size).map { data.subdata(in: $0..<min($0 + size, data.count)).base64EncodedString() }
+    }
+
+    /// katex.min.js, the chemistry extension and auto-render.min.js joined into one script for the reader's own content world.
     static let katexScript: String = {
         func read(_ name: String) -> String {
             Bundle.main.url(forResource: name, withExtension: "js").flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
         }
-        let k = read("katex.min"), a = read("auto-render.min")
-        return k.isEmpty || a.isEmpty ? "" : k + "\n;\n" + a
+        let k = read("katex.min"), a = read("auto-render.min"), m = read("mhchem.min")
+        return k.isEmpty || a.isEmpty ? "" : k + "\n;\n" + m + "\n;\n" + a
     }()
 
     static func removeCache(for id: UUID) {

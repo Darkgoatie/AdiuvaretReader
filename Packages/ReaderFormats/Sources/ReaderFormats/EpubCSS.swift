@@ -64,6 +64,16 @@ public enum EpubCSS {
         li.is-checked{opacity:.75;}
         .footnotes{font-size:.88em;opacity:.9;}
         sup.fn-ref a,a.fn-back{text-decoration:none;}
+        .chem-block{margin:1.1em 0;}
+        .chem-title{font-weight:600;margin-bottom:.4em;}
+        .chem-row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;}
+        .chem-item{text-align:center;max-width:100%;}
+        .chem-item svg{overflow:visible;}
+        .chem-cap{font-size:.88em;opacity:.8;margin-top:2px;}
+        .chem-src{font-size:.85em;white-space:pre-wrap;word-break:break-all;opacity:.85;}
+        .chem-error,.chem-note{font-size:.85em;margin-top:6px;}
+        .chem-error{color:#E5484D!important;}
+        .chem-note{opacity:.7;}
         audio,video{max-width:100%;}
         img.ob-img{border-radius:6px;}
         ::selection{background:rgba(42,185,133,0.4);}
