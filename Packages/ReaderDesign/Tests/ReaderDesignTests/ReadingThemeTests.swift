@@ -5,19 +5,31 @@ import Foundation
 @Suite struct ReadingThemeTests {
     private func defaults() -> UserDefaults { UserDefaults(suiteName: "test." + UUID().uuidString)! }
 
-    @Test(arguments: ReadingTheme.allCases, AppTheme.allCases, [false, true])
-    func textContrast(theme: ReadingTheme, app: AppTheme, dark: Bool) {
-        let s = theme.surface(dark: dark, app: app)
-        #expect(s.text.contrast(with: s.ground) >= 4.5)
-        #expect(s.secondaryText.contrast(with: s.ground) >= 4.5)
-        #expect(s.link.contrast(with: s.ground) >= 4.5)
+    @Test func textAndLinkContrastEverywhere() {
+        for theme in ReadingTheme.allCases {
+            for app in AppTheme.allCases {
+                for dark in [false, true] {
+                    let s = theme.surface(dark: dark, app: app)
+                    let tag = Comment(rawValue: "\(theme) \(app) dark=\(dark)")
+                    #expect(s.text.contrast(with: s.ground) >= 4.5, tag)
+                    #expect(s.secondaryText.contrast(with: s.ground) >= 4.5, tag)
+                    #expect(s.link.contrast(with: s.ground) >= 4.5, tag)
+                }
+            }
+        }
     }
 
-    @Test(arguments: ReadingTheme.allCases, AppTheme.allCases, [false, true])
-    func codeContrast(theme: ReadingTheme, app: AppTheme, dark: Bool) {
-        let s = theme.surface(dark: dark, app: app)
-        let p = s.code
-        for c in [p.keyword, p.string, p.comment, p.number, p.text] { #expect(c.contrast(with: s.ground) >= 4.5) }
+    @Test func codeColoursReadableEverywhere() {
+        for theme in ReadingTheme.allCases {
+            for app in AppTheme.allCases {
+                for dark in [false, true] {
+                    let s = theme.surface(dark: dark, app: app)
+                    let p = s.code
+                    let tag = Comment(rawValue: "\(theme) \(app) dark=\(dark)")
+                    for c in [p.keyword, p.string, p.comment, p.number, p.text] { #expect(c.contrast(with: s.ground) >= 4.5, tag) }
+                }
+            }
+        }
     }
 
     @Test(arguments: AppTheme.allCases)
