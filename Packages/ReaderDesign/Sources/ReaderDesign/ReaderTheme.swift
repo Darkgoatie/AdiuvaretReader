@@ -62,7 +62,7 @@ public struct CodePalette: Sendable {
 
     public static func `for`(_ theme: ReadingTheme) -> CodePalette {
         switch theme {
-        case .paper:
+        case .paper, .auto:
             CodePalette(keyword: RGB(hex: 0x0B7551), string: RGB(hex: 0x8F5200), comment: RGB(hex: 0x655E55), number: RGB(hex: 0x2F54B8), text: RGB(hex: 0x1F1B16))
         case .sepia:
             CodePalette(keyword: RGB(hex: 0x0B6A49), string: RGB(hex: 0x7A4600), comment: RGB(hex: 0x5E5240), number: RGB(hex: 0x2A4AA8), text: RGB(hex: 0x3B3226))
