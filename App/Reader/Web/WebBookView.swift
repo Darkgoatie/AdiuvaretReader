@@ -7,6 +7,8 @@ struct WebBookView: View {
     let model: WebBookModel
     let annotations: [BookAnnotation]
     private let prefs = ReaderPreferences.shared
+    @Environment(\.colorScheme) private var scheme
+    private var surface: ReadingSurface { prefs.surface(dark: scheme == .dark) }
 
     var body: some View {
         Group {
@@ -15,7 +17,8 @@ struct WebBookView: View {
                     request: request,
                     readAccess: URL(fileURLWithPath: NSHomeDirectory()),
                     css: css,
-                    ground: prefs.theme.ground.hex,
+                    ground: surface.ground.hex,
+                    dark: surface.isDark,
                     highlights: highlights,
                     controller: model.controller,
                     onSelection: { model.session.selection = $0 },
@@ -28,12 +31,12 @@ struct WebBookView: View {
                 ProgressView().controlSize(.large)
             }
         }
-        .background(prefs.theme.groundColor)
+        .background(surface.groundColor)
         .task { await model.load() }
     }
 
     private var css: String {
-        let t = prefs.theme
+        let t = surface
         return EpubCSS.make(text: t.text.hex, ground: t.ground.hex, link: t.link.hex, fontStack: prefs.font.css,
                             fontSize: prefs.fontSize, lineHeight: prefs.lineSpacing, sidePadding: Double(prefs.sidePadding),
                             fontFileURL: WebAssets.fontFileURL?.absoluteString)

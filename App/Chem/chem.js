@@ -1,14 +1,27 @@
 (function () {
   if (window.rdChem) return;
   var STYLES = {
-    skeletal: {},
-    explicit: { h: true, o: { explicitMethyl: true } },
-    color: { o: { useCDKAtomPalette: true } },
-    bw: { o: { useBWAtomPalette: true } },
-    comic: { o: { comicMode: true } },
-    compact: { o: { bondLineWidth: 1, baseFontSize: 0.45, padding: 0.04 } },
-    bold: { o: { bondLineWidth: 3, useBWAtomPalette: true } }
+    skeletal: { c: true },
+    explicit: { c: true, h: true, o: { explicitMethyl: true } },
+    color: { c: true },
+    bw: { c: false },
+    comic: { c: true, o: { comicMode: true } },
+    compact: { c: true, o: { bondLineWidth: 1, baseFontSize: 0.45, padding: 0.04 } },
+    bold: { c: false, o: { bondLineWidth: 3 } }
   };
+
+  var INK = { light: [0.12, 0.11, 0.09], dark: [0.96, 0.94, 0.91] };
+  var COLOUR = {
+    light: {"8": [0.776, 0.157, 0.157], "7": [0.114, 0.306, 0.847], "17": [0.082, 0.502, 0.239], "35": [0.541, 0.294, 0.059], "16": [0.541, 0.427, 0.0], "9": [0.055, 0.455, 0.565], "15": [0.706, 0.325, 0.035], "53": [0.494, 0.133, 0.808]},
+    dark: {"8": [1.0, 0.541, 0.502], "7": [0.541, 0.706, 1.0], "17": [0.29, 0.871, 0.502], "35": [0.878, 0.627, 0.376], "16": [0.902, 0.831, 0.353], "9": [0.369, 0.878, 0.878], "15": [1.0, 0.663, 0.302], "53": [0.78, 0.573, 0.918]}
+  };
+  function dark() { return !!window.__rdDark; }
+  function palette(colourful) {
+    var ink = dark() ? INK.dark : INK.light, p = { '-1': ink, '1': ink, '6': ink };
+    if (colourful) { var c = dark() ? COLOUR.dark : COLOUR.light; for (var k in c) p[k] = c[k]; }
+    else { [7, 8, 9, 15, 16, 17, 35, 53].forEach(function (z) { p[String(z)] = ink; }); }
+    return p;
+  }
   var parts = [], RD = null;
   window.rdChemPush = function (b64) {
     var s = atob(b64), a = new Uint8Array(s.length);
@@ -45,13 +58,13 @@
         var hyd = fig.dataset.hydrogens, showH = hyd ? hyd === 'explicit' : !!st.h;
         if (showH) { var withH = mol.add_hs(); var m2 = rd.get_mol(withH); mol.delete(); mol = m2; }
         if (lang !== 'mol' || !mol.has_coords || !mol.has_coords()) mol.set_new_coords();
-        var w = parseInt(fig.dataset.width, 10) || 300, o = Object.assign({ width: w, height: Math.round(w * 0.75), clearBackground: false }, st.o || {});
+        var w = parseInt(fig.dataset.width, 10) || 300, o = Object.assign({ width: w, height: Math.round(w * 0.75), clearBackground: false, atomColourPalette: palette(st.c !== false) }, st.o || {});
         if (fig.dataset.numbers === '1') o.addAtomIndices = true;
         if (fig.dataset.stereo === '1') o.addStereoAnnotation = true;
         if (fig.dataset.highlight) o.atoms = fig.dataset.highlight.split(',').map(Number);
         var svg = mol.get_svg_with_highlights(JSON.stringify(o));
         svg = svg.replace(/<\?xml[^>]*\?>\s*/, '').replace(/#000000/gi, 'currentColor');
-        var item = document.createElement('div'); item.className = 'chem-item'; item.innerHTML = svg;
+        var item = document.createElement('div'); item.className = 'chem-item'; item.innerHTML = svg; item.dataset.smi = smi;
         if (cap) { var c = document.createElement('div'); c.className = 'chem-cap'; c.textContent = cap; item.appendChild(c); }
         row.appendChild(item); made++;
       } catch (e) { bad.push(smi); }
@@ -62,6 +75,15 @@
     fig.dataset.drawn = '1';
     return made;
   }
+  window.rdChemTheme = function () {
+    if (!RD) return;
+    [].slice.call(document.querySelectorAll('.chem-block[data-drawn]')).forEach(function (f) {
+      var old = f.querySelector('.chem-row'); if (old) old.remove();
+      var er = f.querySelector('.chem-error'); if (er) er.remove();
+      var src = f.querySelector('.chem-src'); if (src) src.style.display = '';
+      draw(f, RD);
+    });
+  };
   window.rdChem = async function () {
     var figs = [].slice.call(document.querySelectorAll('.chem-block:not([data-drawn])'));
     if (!figs.length) return 0;

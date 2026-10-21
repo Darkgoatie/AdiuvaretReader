@@ -112,19 +112,22 @@ struct DarkPages: ViewModifier {
 struct PDFBookView: View {
     let model: PDFBookModel
     private let prefs = ReaderPreferences.shared
+    @Environment(\.colorScheme) private var scheme
+    private var surface: ReadingSurface { prefs.surface(dark: scheme == .dark) }
 
     var body: some View {
         Group {
             if let doc = model.document {
-                PDFKitView(model: model, document: doc, ground: prefs.theme.groundColor)
-                    .modifier(DarkPages(on: prefs.theme == .dark))
+                // Pages are inverted for dark reading, so the view behind them is given the inverse of the ground.
+                PDFKitView(model: model, document: doc, ground: surface.isDark ? surface.invertedGroundColor : surface.groundColor)
+                    .modifier(DarkPages(on: surface.isDark))
             } else if let failure = model.failure {
                 ContentUnavailableView("Cannot open this PDF", systemImage: "exclamationmark.triangle", description: Text(failure))
             } else {
                 ProgressView().controlSize(.large)
             }
         }
-        .background(prefs.theme.groundColor)
+        .background(surface.groundColor)
         .onAppear { model.load() }
     }
 }

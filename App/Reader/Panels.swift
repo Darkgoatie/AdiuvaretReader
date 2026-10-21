@@ -8,15 +8,19 @@ import ReaderAssistant
 struct ReaderSettingsView: View {
     @Bindable private var prefs = ReaderPreferences.shared
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var scheme
+    private var surface: ReadingSurface { prefs.surface(dark: scheme == .dark) }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Page") {
+                Section {
                     Picker("Theme", selection: $prefs.theme) {
                         ForEach(ReadingTheme.allCases) { Text($0.title).tag($0) }
                     }
                     .pickerStyle(.segmented)
+                } footer: {
+                    Text(prefs.theme == .auto ? "Follows the app's colour and its light or dark appearance, so opening a book never changes the contrast." : "A fixed look that ignores the app's appearance.")
                 }
                 if prefs.bookScope != nil {
                     Section {
@@ -38,10 +42,10 @@ struct ReaderSettingsView: View {
                     Text("The quick brown fox jumps over the lazy dog.")
                         .font(prefs.font.font(size: prefs.fontSize))
                         .lineSpacing(prefs.fontSize * (prefs.lineSpacing - 1))
-                        .foregroundStyle(prefs.theme.textColor)
+                        .foregroundStyle(surface.textColor)
                         .padding(Spacing.m)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .listRowBackground(prefs.theme.groundColor)
+                        .listRowBackground(surface.groundColor)
                 }
             }
             .navigationTitle("Appearance")

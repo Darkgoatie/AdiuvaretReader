@@ -91,10 +91,12 @@ final class CodeBookModel {
 struct CodeViewerView: View {
     let model: CodeBookModel
     private let prefs = ReaderPreferences.shared
+    @Environment(\.colorScheme) private var scheme
+    private var surface: ReadingSurface { prefs.surface(dark: scheme == .dark) }
     @State private var findText = ""
 
     var body: some View {
-        let palette = CodePalette.for(prefs.theme)
+        let palette = surface.code
         let size = max(11, prefs.fontSize - 5)
         VStack(spacing: 0) {
             if model.session.showSearch { findBar }
@@ -123,7 +125,7 @@ struct CodeViewerView: View {
                 }
             }
         }
-        .background(prefs.theme.groundColor)
+        .background(surface.groundColor)
         .task { await model.load() }
     }
 

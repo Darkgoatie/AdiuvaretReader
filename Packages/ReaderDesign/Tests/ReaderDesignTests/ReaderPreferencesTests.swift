@@ -11,7 +11,7 @@ import Foundation
     @Test func defaultsAndPersistence() {
         let d = defaults()
         let p = ReaderPreferences(defaults: d)
-        #expect(p.theme == .paper)
+        #expect(p.theme == .auto)
         #expect(p.fontSize == 19)
         p.theme = .sepia
         p.fontSize = 24
@@ -49,7 +49,7 @@ import Foundation
         p.theme = .sepia
         #expect(ReaderPreferences(defaults: d).fontSize == 20)
         p.leave()
-        #expect(p.fontSize == 20 && p.theme == .paper)
+        #expect(p.fontSize == 20 && p.theme == .auto)
         p.enter(book: book)
         #expect(p.isScoped && p.fontSize == 30 && p.theme == .sepia)
         let other = UUID()

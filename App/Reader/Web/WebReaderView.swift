@@ -39,6 +39,7 @@ struct WebReaderView: PlatformRepresentable {
     let readAccess: URL
     let css: String
     let ground: String
+    let dark: Bool
     let highlights: [WebHighlight]
     let controller: WebReaderController
     let onSelection: (String) -> Void
@@ -132,6 +133,7 @@ struct WebReaderView: PlatformRepresentable {
         func drawMolecules(in webView: WKWebView) async {
             let has = try? await webView.evaluateJavaScript("!!document.querySelector('.chem-block')", in: nil, contentWorld: .defaultClient) as? Bool
             guard has == true, !WebAssets.chemScript.isEmpty else { return }
+            _ = try? await webView.evaluateJavaScript("window.__rdDark = \(parent.dark)", in: nil, contentWorld: .defaultClient)
             _ = try? await webView.evaluateJavaScript(WebAssets.chemScript, in: nil, contentWorld: .defaultClient)
             for chunk in WebAssets.chemWasmChunks() {
                 _ = try? await webView.evaluateJavaScript("window.rdChemPush('\(chunk)')", in: nil, contentWorld: .defaultClient)
@@ -189,7 +191,9 @@ struct WebReaderView: PlatformRepresentable {
         c.parent = self
         if css != c.css {
             c.install(on: view, css: css)
-            if c.ready { view.evaluateJavaScript("window.rd.setCSS(\(WebBridge.jsString(css)))", in: nil, in: .defaultClient, completionHandler: nil) }
+            if c.ready {
+                view.evaluateJavaScript("window.rd.setCSS(\(WebBridge.jsString(css)));window.__rdDark=\(dark);window.rdChemTheme&&window.rdChemTheme()", in: nil, in: .defaultClient, completionHandler: nil)
+            }
         }
         if request.id != c.lastRequestID {
             c.lastRequestID = request.id

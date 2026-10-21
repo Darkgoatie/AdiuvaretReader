@@ -59,9 +59,25 @@ public final class ReaderPreferences: @unchecked Sendable {
     private let defaults: UserDefaults
     private var loading = false
 
+    /// The colours to draw the reader with right now. Reads the app theme, so a screen that calls it repaints when either changes.
+    public func surface(dark: Bool) -> ReadingSurface { theme.surface(dark: dark, app: ThemeStore.shared.theme) }
+
+    static let themeKey = "reader.theme2"
+
+    /// The stored theme. Before "Match app" existed every reader stored "paper" just by changing a setting, so an old "paper"
+    /// is read as the new default; an old "sepia" or "dark" was a real choice and is kept.
+    static func storedTheme(_ defaults: UserDefaults) -> ReadingTheme {
+        if let v2 = defaults.string(forKey: themeKey) { return ReadingTheme.resolve(v2) }
+        switch defaults.string(forKey: "reader.theme") {
+        case "sepia": return .sepia
+        case "dark": return .dark
+        default: return .auto
+        }
+    }
+
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        theme = ReadingTheme.resolve(defaults.string(forKey: "reader.theme"))
+        theme = Self.storedTheme(defaults)
         font = ReadingFont(rawValue: defaults.string(forKey: "reader.font") ?? "") ?? .sans
         fontSize = ReaderLimits.clamp((defaults.object(forKey: "reader.size") as? Double) ?? 19, ReaderLimits.fontSize)
         lineSpacing = ReaderLimits.clamp((defaults.object(forKey: "reader.spacing") as? Double) ?? 1.5, ReaderLimits.lineSpacing)
@@ -89,7 +105,7 @@ public final class ReaderPreferences: @unchecked Sendable {
     }
 
     private var globalValues: [String: Any] {
-        ["theme": defaults.string(forKey: "reader.theme") as Any, "font": defaults.string(forKey: "reader.font") as Any,
+        ["theme": Self.storedTheme(defaults).rawValue as Any, "font": defaults.string(forKey: "reader.font") as Any,
          "size": defaults.object(forKey: "reader.size") as Any, "spacing": defaults.object(forKey: "reader.spacing") as Any,
          "margin": defaults.object(forKey: "reader.margin") as Any]
     }
@@ -103,7 +119,7 @@ public final class ReaderPreferences: @unchecked Sendable {
     }
 
     private func writeGlobal() {
-        defaults.set(theme.rawValue, forKey: "reader.theme")
+        defaults.set(theme.rawValue, forKey: Self.themeKey)
         defaults.set(font.rawValue, forKey: "reader.font")
         defaults.set(ReaderLimits.clamp(fontSize, ReaderLimits.fontSize), forKey: "reader.size")
         defaults.set(ReaderLimits.clamp(lineSpacing, ReaderLimits.lineSpacing), forKey: "reader.spacing")

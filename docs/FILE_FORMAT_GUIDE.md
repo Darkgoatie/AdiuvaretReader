@@ -291,7 +291,7 @@ Unknown keys end the header (for SMILES the line is then treated as a molecule).
 | `bold` | thick bonds, black and white | `thick` |
 
 An unknown style falls back to `skeletal` and the block shows "Unknown style ..., drawn as skeletal. Styles: ...". There is no 3D, ball-and-stick or space-filling style.
-Drawings use the page text colour, so they stay readable in paper, sepia and dark themes.
+Drawings follow the reading theme: the carbon skeleton and bonds use the page's text colour, and element colours (O, N, Cl, Br, S, F, P, I) switch to a light-ground set or a dark-ground set, so they stay readable in light and dark. `bw` and `bold` use the text colour only. If the theme changes while a note is open the drawings redraw.
 
 ### 8.4 Note default style
 

@@ -16,6 +16,8 @@ struct ReaderView: View {
     @State private var code: CodeBookModel?
     @State private var toast: String?
     private let prefs = ReaderPreferences.shared
+    @Environment(\.colorScheme) private var systemScheme
+    private var surface: ReadingSurface { prefs.surface(dark: systemScheme == .dark) }
 
     @State private var linked: LinkedNote?
     @State private var showBacklinks = false
@@ -45,7 +47,7 @@ struct ReaderView: View {
                     .accessibilityAddTraits(.updatesFrequently)
             }
         }
-        .background(prefs.theme.groundColor.ignoresSafeArea())
+        .background(surface.groundColor.ignoresSafeArea())
         .navigationTitle(book.title)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -89,7 +91,14 @@ struct ReaderView: View {
         .preferredColorScheme(scheme)
     }
 
-    private var scheme: ColorScheme { prefs.theme == .dark ? .dark : .light }
+    /// Match app follows the system; the fixed themes bring their own light or dark bars and sheets.
+    private var scheme: ColorScheme? {
+        switch prefs.theme {
+        case .auto: nil
+        case .dark: .dark
+        case .paper, .sepia: .light
+        }
+    }
 
     @ViewBuilder private var content: some View {
         switch book.format {
@@ -155,7 +164,7 @@ struct ReaderView: View {
                     .disabled(book.format == .code || session.stepper == nil)
                 VStack(spacing: Spacing.xs) {
                     ProgressView(value: session.progress).tint(DS.Colors.accent)
-                    Text(progressLabel).font(DS.Typography.caption).foregroundStyle(prefs.theme.secondaryText.color)
+                    Text(progressLabel).font(DS.Typography.caption).foregroundStyle(surface.secondaryColor)
                 }
                 Button { session.stepper?(1) } label: { Image(systemName: "chevron.right").frame(width: 44, height: 44) }
                     .accessibilityLabel(book.format == .pdf ? "Next page" : "Next chapter")
