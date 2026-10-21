@@ -14,7 +14,7 @@ import Testing
         let html = ObsidianMarkdown.page(title: "Esterification", source: note, ctx: ctx)
         #expect(html.contains("<h1 id=\"h-esterification\">"))
         #expect(html.contains("ob-properties") && html.contains("href=\"obsidian-tag:chemistry\""))
-        #expect(html.contains("obsidian-note:Reaction%20rates#Catalysts"))
+        #expect(html.contains("obsidian-note:Reaction%20rates.md#Catalysts"))
         #expect(html.contains("\\ce{CH3COOH + C2H5OH &lt;=&gt; CH3COOC2H5 + H2O}"))
         #expect(html.contains("callout co-note") && html.contains("<mark class=\"ob-hl\">Remove water</mark>"))
         #expect(html.contains("data-style=\"skeletal\"") && html.contains("data-width=\"200\""))
