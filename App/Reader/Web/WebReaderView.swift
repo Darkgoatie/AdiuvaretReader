@@ -74,6 +74,10 @@ struct WebReaderView: PlatformRepresentable {
             if !WebAssets.katexScript.isEmpty {
                 controller.addUserScript(WKUserScript(source: WebAssets.katexScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: .defaultClient))
             }
+            if parent.ink != nil {
+                let lock = "(function(){var m=document.querySelector('meta[name=viewport]');if(!m){m=document.createElement('meta');m.name='viewport';document.head.appendChild(m);}m.content='width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no';})();"
+                controller.addUserScript(WKUserScript(source: lock, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: .defaultClient))
+            }
             controller.addUserScript(WKUserScript(source: WebBridge.script, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: .defaultClient))
             self.css = css
         }
@@ -130,6 +134,7 @@ struct WebReaderView: PlatformRepresentable {
             await run("window.rd.setHighlights(\(WebBridge.jsHighlights(highlights)))")
             await perform(current, in: webView)
             await run("window.rd.show()")
+            parent.ink?.lockZoom()
             parent.ink?.show(page: parent.inkPage)
         }
 

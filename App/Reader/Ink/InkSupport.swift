@@ -16,11 +16,24 @@ final class InkPDFView: PDFView {
     override var canBecomeFirstResponder: Bool { true }
 }
 
+/// A canvas on a PDF page. PDFKit may resize the page's overlay as the zoom changes, so the canvas says whenever its size changes.
+final class InkPageCanvas: PKCanvasView {
+    var onResize: ((InkPageCanvas) -> Void)?
+    private var lastWidth: CGFloat = 0
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        guard abs(bounds.width - lastWidth) > 0.01 else { return }
+        lastWidth = bounds.width
+        onResize?(self)
+    }
+}
+
 @MainActor
 enum InkCanvas {
     /// A transparent canvas. A finger scrolls the page underneath unless the user lets fingers draw in the tool picker, and the Apple Pencil draws.
-    static func make(dark: Bool) -> PKCanvasView {
-        let c = PKCanvasView()
+    static func make(dark: Bool, page: Bool = false) -> PKCanvasView {
+        let c: PKCanvasView = page ? InkPageCanvas() : PKCanvasView()
         c.backgroundColor = .clear
         c.isOpaque = false
         c.drawingPolicy = .default
@@ -71,6 +84,7 @@ final class WebInk: NSObject, PKCanvasViewDelegate {
             Task { @MainActor in self?.relayout() }
         }
         canvas = c
+        lockZoom()
         relayout()
     }
 
@@ -149,11 +163,17 @@ final class WebInk: NSObject, PKCanvasViewDelegate {
         updateZoomLock()
     }
 
-    /// Ink sits at fixed positions, so pinch zoom would pull it away from the text. It is off while there is ink or while drawing.
-    private func updateZoomLock() {
-        let hasStrokes = !(canvas?.drawing.strokes.isEmpty ?? true)
-        scrollView?.pinchGestureRecognizer?.isEnabled = !(active || hasStrokes)
+    /// Ink sits at fixed positions in the page, and the canvas is not part of what a pinch scales, so zoom would pull the ink away from
+    /// the text. Text pages never zoom: the font size and margins in Appearance change the size of the text, and the ink follows.
+    func lockZoom() {
+        guard let sv = scrollView else { return }
+        sv.pinchGestureRecognizer?.isEnabled = false
+        sv.minimumZoomScale = 1
+        sv.maximumZoomScale = 1
+        if sv.zoomScale != 1 { sv.setZoomScale(1, animated: false) }
     }
+
+    private func updateZoomLock() { lockZoom() }
 
     nonisolated func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
         MainActor.assumeIsolated { self.changed() }
@@ -232,7 +252,8 @@ final class PDFInk: NSObject, PDFPageOverlayViewProvider, PKCanvasViewDelegate, 
     private func canvas(for page: PDFPage, in view: PDFView) -> PKCanvasView {
         let pid = ObjectIdentifier(page)
         if let existing = canvases[pid] { return existing }
-        let c = InkCanvas.make(dark: false)
+        let c = InkCanvas.make(dark: false, page: true)
+        (c as? InkPageCanvas)?.onResize = { [weak self] canvas in MainActor.assumeIsolated { self?.reconcile(canvas) } }
         c.isUserInteractionEnabled = active
         c.delegate = self
         picker.addObserver(c)
