@@ -271,6 +271,7 @@ final class PDFInk: NSObject, PDFPageOverlayViewProvider, PKCanvasViewDelegate, 
             return
         }
         c.contentSize = c.bounds.size
+        routeTouches()
         guard e.applied == 0 else { reconcile(c); return }
         var drawing = store.load(bookID: bookID, key: "p\(e.index)").flatMap { try? PKDrawing(data: $0.drawing) } ?? PKDrawing()
         let pageWidth = page.bounds(for: .cropBox).width
@@ -341,8 +342,23 @@ final class PDFInk: NSObject, PDFPageOverlayViewProvider, PKCanvasViewDelegate, 
         onHasInk?(false)
     }
 
-    private func applyActive() {
+    /// PDFKit turns touch off on its page views, and the ink canvases live inside them, so the Pencil only ever reached PDFKit's own scrolling.
+    /// While drawing, the page views take touch again, and the scroll view's pan only answers to fingers, so the Pencil goes to the canvas.
+    private func routeTouches() {
+        guard let pdfView else { return }
+        for sub in pdfView.documentView?.subviews ?? [] { sub.isUserInteractionEnabled = true }
         for c in canvases.values { c.isUserInteractionEnabled = active }
+        var scrolls: [UIScrollView] = []
+        func walk(_ v: UIView) { for s in v.subviews { if let sv = s as? UIScrollView, !(s is PKCanvasView) { scrolls.append(sv) }; if !(s is PKCanvasView) { walk(s) } } }
+        walk(pdfView)
+        for sv in scrolls {
+            sv.panGestureRecognizer.allowedTouchTypes = active ? [NSNumber(value: UITouch.TouchType.direct.rawValue)] : [
+                NSNumber(value: UITouch.TouchType.direct.rawValue), NSNumber(value: UITouch.TouchType.pencil.rawValue), NSNumber(value: UITouch.TouchType.indirectPointer.rawValue)]
+        }
+    }
+
+    private func applyActive() {
+        routeTouches()
         guard let pdfView else { return }
         if active {
             picker.setVisible(true, forFirstResponder: pdfView)
