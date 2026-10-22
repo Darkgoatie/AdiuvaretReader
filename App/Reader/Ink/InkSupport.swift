@@ -8,6 +8,9 @@ import PencilKit
 import PDFKit
 import WebKit
 
+/// Carries a UIKit object across the isolation boundary of a delegate callback. UIKit calls these on the main thread.
+struct Unchecked<T>: @unchecked Sendable { let value: T; init(_ value: T) { self.value = value } }
+
 /// A PDF view that can own the tool picker, so the picker stays up while the page canvases scroll in and out.
 final class InkPDFView: PDFView {
     override var canBecomeFirstResponder: Bool { true }
@@ -212,17 +215,18 @@ final class PDFInk: NSObject, PDFPageOverlayViewProvider, PKCanvasViewDelegate, 
     // MARK: PDFPageOverlayViewProvider
 
     nonisolated func pdfView(_ view: PDFView, overlayViewFor page: PDFPage) -> UIView? {
-        var out: UIView?
-        MainActor.assumeIsolated { out = self.canvas(for: page, in: view) }
-        return out
+        let box = Unchecked((view, page))
+        return MainActor.assumeIsolated { self.canvas(for: box.value.1, in: box.value.0) }
     }
 
     nonisolated func pdfView(_ pdfView: PDFView, willDisplayOverlayView overlayView: UIView, for page: PDFPage) {
-        MainActor.assumeIsolated { if let c = overlayView as? PKCanvasView { self.display(c, page: page) } }
+        let box = Unchecked((overlayView, page))
+        MainActor.assumeIsolated { if let c = box.value.0 as? PKCanvasView { self.display(c, page: box.value.1) } }
     }
 
     nonisolated func pdfView(_ pdfView: PDFView, willEndDisplayingOverlayView overlayView: UIView, for page: PDFPage) {
-        MainActor.assumeIsolated { if let c = overlayView as? PKCanvasView { self.end(c, page: page) } }
+        let box = Unchecked((overlayView, page))
+        MainActor.assumeIsolated { if let c = box.value.0 as? PKCanvasView { self.end(c, page: box.value.1) } }
     }
 
     private func canvas(for page: PDFPage, in view: PDFView) -> PKCanvasView {
@@ -332,8 +336,9 @@ final class PDFInk: NSObject, PDFPageOverlayViewProvider, PKCanvasViewDelegate, 
     // MARK: Delegates
 
     nonisolated func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+        let id = ObjectIdentifier(canvasView)
         MainActor.assumeIsolated {
-            self.dirty.insert(ObjectIdentifier(canvasView))
+            self.dirty.insert(id)
             self.saveTask?.cancel()
             self.saveTask = Task { [weak self] in
                 try? await Task.sleep(nanoseconds: 800_000_000)
@@ -345,8 +350,9 @@ final class PDFInk: NSObject, PDFPageOverlayViewProvider, PKCanvasViewDelegate, 
 
     /// Every page canvas takes the tool chosen in the picker, not only the one that has focus.
     nonisolated func toolPickerSelectedToolDidChange(_ toolPicker: PKToolPicker) {
+        let box = Unchecked(toolPicker)
         MainActor.assumeIsolated {
-            let tool = toolPicker.selectedTool
+            let tool = box.value.selectedTool
             for c in self.canvases.values { c.tool = tool }
         }
     }
