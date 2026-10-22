@@ -17,7 +17,16 @@ final class WebBookModel {
 
     @ObservationIgnored private var texts: [(chapter: Int, text: String)]?
 
-    init(session: ReaderSession) { self.session = session }
+    @ObservationIgnored let ink: WebInk
+
+    init(session: ReaderSession) {
+        self.session = session
+        ink = WebInk(bookID: session.book.id)
+        ink.onHasInk = { [weak session] in session?.hasInk = $0 }
+        session.hasInk = InkStore.standard().hasInk(bookID: session.book.id)
+    }
+
+    func setInk(_ on: Bool) { ink.active = on }
 
     func load() async {
         guard request == nil, let url = Services.url(for: session.book) else {

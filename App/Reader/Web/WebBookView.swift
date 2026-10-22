@@ -20,6 +20,8 @@ struct WebBookView: View {
                     ground: surface.ground.hex,
                     dark: surface.isDark,
                     highlights: highlights,
+                    ink: model.ink,
+                    inkPage: "c\(model.chapter)",
                     controller: model.controller,
                     onSelection: { model.session.selection = $0 },
                     onScroll: { model.scrolled($0) },

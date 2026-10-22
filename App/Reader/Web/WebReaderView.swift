@@ -41,6 +41,9 @@ struct WebReaderView: PlatformRepresentable {
     let ground: String
     let dark: Bool
     let highlights: [WebHighlight]
+    let ink: WebInk?
+    /// The chapter the ink belongs to, such as c3.
+    let inkPage: String
     let controller: WebReaderController
     let onSelection: (String) -> Void
     let onScroll: (Double) -> Void
@@ -127,6 +130,7 @@ struct WebReaderView: PlatformRepresentable {
             await run("window.rd.setHighlights(\(WebBridge.jsHighlights(highlights)))")
             await perform(current, in: webView)
             await run("window.rd.show()")
+            parent.ink?.show(page: parent.inkPage)
         }
 
         /// Draws molecule blocks with RDKit. The engine is sent to the page only when the page has such a block.
@@ -174,6 +178,10 @@ struct WebReaderView: PlatformRepresentable {
         view.navigationDelegate = context.coordinator
         context.coordinator.install(on: view, css: css)
         controller.webView = view
+        #if canImport(UIKit)
+        ink?.attach(to: view)
+        ink?.dark = dark
+        #endif
         Task { @MainActor in
             if Coordinator.blockList == nil {
                 Coordinator.blockList = try? await WKContentRuleListStore.default().compileContentRuleList(
@@ -194,10 +202,12 @@ struct WebReaderView: PlatformRepresentable {
 
     private func apply(to view: WKWebView, coordinator c: Coordinator) {
         c.parent = self
+        ink?.dark = dark
         if css != c.css {
             c.install(on: view, css: css)
             if c.ready {
                 view.evaluateJavaScript("window.rd.setCSS(\(WebBridge.jsString(css)));window.__rdDark=\(dark);window.rdChemTheme&&window.rdChemTheme()", in: nil, in: .defaultClient, completionHandler: nil)
+                ink?.refreshLayout()
             }
         }
         if request.id != c.lastRequestID {
@@ -206,6 +216,7 @@ struct WebReaderView: PlatformRepresentable {
             if request.url.deletingFragment().standardizedFileURL == c.loadedURL?.standardizedFileURL, c.ready {
                 Task { await c.perform(request, in: view) }
             } else {
+                ink?.leavePage()
                 c.loadedURL = request.url.deletingFragment()
                 c.ready = false
                 view.loadFileURL(request.url.deletingFragment(), allowingReadAccessTo: readAccess)

@@ -17,8 +17,15 @@ final class PDFBookModel {
     var document: PDFDocument?
     var failure: String?
     @ObservationIgnored weak var view: PDFView?
+    @ObservationIgnored let ink: PDFInk
 
-    init(session: ReaderSession) { self.session = session }
+    init(session: ReaderSession) {
+        self.session = session
+        ink = PDFInk(bookID: session.book.id)
+        ink.onHasInk = { [weak session] in session?.hasInk = $0 }
+    }
+
+    func setInk(_ on: Bool) { ink.active = on }
 
     var pageCount: Int { document?.pageCount ?? 0 }
 
@@ -28,6 +35,7 @@ final class PDFBookModel {
         guard let doc = PDFDocument(url: url) else { failure = "This PDF could not be opened. It may be damaged."; return }
         if doc.isLocked { failure = "This PDF is password protected and cannot be opened here."; return }
         document = doc
+        session.hasInk = InkStore.standard().hasInk(bookID: session.book.id)
         session.toc = outline(doc)
         session.stepper = { [weak self] delta in self?.step(delta) }
         session.clearSelectionHook = { [weak self] in self?.view?.clearSelection() }
@@ -102,10 +110,12 @@ final class PDFBookModel {
 }
 
 /// A dark reading theme inverts the page colours; images invert too, which is the usual trade for a dark PDF.
+/// With ink on the page the hues are turned back after the inversion, so a red pen stays red and does not turn cyan.
 struct DarkPages: ViewModifier {
     let on: Bool
+    var keepHues = false
     func body(content: Content) -> some View {
-        if on { content.colorInvert() } else { content }
+        if on { content.colorInvert().hueRotation(.degrees(keepHues ? 180 : 0)) } else { content }
     }
 }
 
@@ -120,7 +130,7 @@ struct PDFBookView: View {
             if let doc = model.document {
                 // Pages are inverted for dark reading, so the view behind them is given the inverse of the ground.
                 PDFKitView(model: model, document: doc, ground: surface.isDark ? surface.invertedGroundColor : surface.groundColor)
-                    .modifier(DarkPages(on: surface.isDark))
+                    .modifier(DarkPages(on: surface.isDark, keepHues: model.session.hasInk || model.session.inkActive))
             } else if let failure = model.failure {
                 ContentUnavailableView("Cannot open this PDF", systemImage: "exclamationmark.triangle", description: Text(failure))
             } else {
@@ -141,7 +151,7 @@ struct PDFKitView: UIViewRepresentable {
     func makeCoordinator() -> PDFCoordinator { PDFCoordinator(model) }
 
     func makeUIView(context: Context) -> PDFView {
-        let v = PDFView()
+        let v = InkPDFView()
         v.document = document
         v.autoScales = true
         v.displayMode = .singlePageContinuous
@@ -149,6 +159,7 @@ struct PDFKitView: UIViewRepresentable {
         v.usePageViewController(false)
         v.pageShadowsEnabled = false
         model.view = v
+        model.ink.attach(v)
         context.coordinator.attach(v)
         if let f = model.session.startFragment, f.hasPrefix("page="), let n = Int(f.dropFirst(5)) {
             model.goTo(page: n - 1)

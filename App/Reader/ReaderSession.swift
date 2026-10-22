@@ -49,12 +49,19 @@ final class ReaderSession {
     var toast: String?
     var startFragment: String?
     var clearSelectionHook: (() -> Void)?
+    /// Drawing mode: the page takes ink, and the tool picker is up.
+    var inkActive = false
+    /// The file has ink on it.
+    var hasInk = false
 
     @ObservationIgnored private var saveTask: Task<Void, Never>?
 
     init(book: Book) { self.book = book }
 
     var isCode: Bool { book.format == .code }
+
+    /// Ink goes on PDFs and on every text format that is shown as a page. Code files are not covered.
+    var inkSupported: Bool { book.format != .code }
 
     func record(_ position: ReadingPosition, progress: Double) {
         self.position = position

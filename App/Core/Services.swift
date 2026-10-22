@@ -36,6 +36,7 @@ enum LibraryService {
                 let id = b.id
                 let notes = (try? context.fetch(FetchDescriptor<BookAnnotation>(predicate: #Predicate { $0.bookID == id }))) ?? []
                 notes.forEach { context.delete($0) }
+                InkStore.standard().removeAll(bookID: id)
                 context.delete(b)
             }
         }

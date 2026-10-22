@@ -22,6 +22,7 @@ struct ReaderView: View {
     @State private var linked: LinkedNote?
     @State private var showBacklinks = false
     @State private var defineTerm: String?
+    @State private var confirmClearInk = false
 
     init(book: Book, fragment: String? = nil) {
         self.book = book
@@ -35,7 +36,7 @@ struct ReaderView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             content
-            if session.chromeVisible { bottomBar.transition(.opacity) }
+            if session.chromeVisible && !session.inkActive { bottomBar.transition(.opacity) }
             if let toast {
                 Text(toast)
                     .font(DS.Typography.footnote)
@@ -51,7 +52,7 @@ struct ReaderView: View {
         .navigationTitle(book.title)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(session.chromeVisible ? .visible : .hidden, for: .navigationBar)
+        .toolbar(session.chromeVisible || session.inkActive ? .visible : .hidden, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         #endif
         .toolbar { toolbar }
@@ -62,6 +63,9 @@ struct ReaderView: View {
         .onChange(of: prefs.keepScreenOn) { _, _ in applyIdleTimer() }
         .onDisappear {
             session.flush(); try? context.save()
+            session.inkActive = false
+            web?.ink.flush()
+            pdf?.ink.flush()
             prefs.leave(book: book.id)
             #if canImport(UIKit)
             UIApplication.shared.isIdleTimerDisabled = false
@@ -74,6 +78,19 @@ struct ReaderView: View {
             pdf?.handle(jump)
         }
         .onChange(of: session.progress) { _, v in book.progress = v }
+        .onChange(of: session.inkActive) { _, on in
+            web?.setInk(on)
+            pdf?.setInk(on)
+            if on { session.clearSelection() }
+        }
+        .confirmationDialog("Remove all ink from this file?", isPresented: $confirmClearInk, titleVisibility: .visible) {
+            Button("Remove ink", role: .destructive) {
+                session.inkActive = false
+                web?.ink.clearAll()
+                pdf?.ink.clearAll()
+                say("Ink removed")
+            }
+        } message: { Text("The file itself is not changed.") }
         .onChange(of: session.toast) { _, v in if let v { say(v); session.toast = nil } }
         .navigationDestination(item: $linked) { ReaderView(book: $0.book, fragment: $0.fragment).id($0.book.id) }
         .sheet(isPresented: $session.showSettings) { ReaderSettingsView().presentationDetents([.medium, .large]) }
@@ -137,6 +154,12 @@ struct ReaderView: View {
                 Button { session.showContents = true } label: { Label("Contents", systemImage: "list.bullet") }
             }
             Button { session.showSearch.toggle() } label: { Label("Search", systemImage: "magnifyingglass") }
+            if session.inkSupported {
+                Button { session.inkActive.toggle() } label: {
+                    Label(session.inkActive ? "Done drawing" : "Draw", systemImage: session.inkActive ? "checkmark.circle.fill" : "pencil.tip.crop.circle")
+                }
+                .accessibilityLabel(session.inkActive ? "Done drawing" : "Draw on this file")
+            }
             if book.format == .code, let code {
                 Button { code.wrap.toggle() } label: { Label("Wrap lines", systemImage: code.wrap ? "text.alignleft" : "arrow.left.and.right.text.vertical") }
             }
@@ -146,6 +169,9 @@ struct ReaderView: View {
                 Button { session.showSettings = true } label: { Label("Appearance", systemImage: "textformat.size") }
                 if book.format == .markdown {
                     Button { showBacklinks = true } label: { Label("Linked from", systemImage: "link") }
+                }
+                if session.hasInk {
+                    Button(role: .destructive) { confirmClearInk = true } label: { Label("Remove all ink", systemImage: "eraser") }
                 }
                 if let url = Services.url(for: book) { ShareLink(item: url) { Label("Open in another app", systemImage: "arrow.up.forward.app") } }
                 if !annotations.isEmpty { ShareLink(item: exportText, subject: Text(book.title)) { Label("Export notes", systemImage: "square.and.arrow.up") } }
