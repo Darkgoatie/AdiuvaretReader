@@ -18,11 +18,15 @@ final class PDFBookModel {
     var failure: String?
     @ObservationIgnored weak var view: PDFView?
     @ObservationIgnored let ink: PDFInk
+    let zones: ZoneController
 
     init(session: ReaderSession) {
         self.session = session
         ink = PDFInk(bookID: session.book.id)
         ink.onHasInk = { [weak session] in session?.hasInk = $0 }
+        zones = ZoneController(bookID: session.book.id)
+        zones.jumpTo = { [weak self] page in self?.goTo(page: page) }
+        zones.toast = { [weak session] text in session?.toast = text }
     }
 
     func setInk(_ on: Bool) { ink.active = on }
@@ -131,6 +135,16 @@ struct PDFBookView: View {
                 // Pages are inverted for dark reading, so the view behind them is given the inverse of the ground.
                 PDFKitView(model: model, document: doc, ground: surface.isDark ? surface.invertedGroundColor : surface.groundColor)
                     .modifier(DarkPages(on: surface.isDark, keepHues: model.session.hasInk || model.session.inkActive))
+                    #if canImport(UIKit)
+                    .overlay { ZoneLayer(model: model, controller: model.zones) }
+                    .overlay(alignment: .top) { if model.zones.marking { ZoneMarkingBanner(controller: model.zones) } }
+                    .fullScreenCover(item: Binding(get: { model.zones.opened }, set: { if $0 == nil { model.zones.opened = nil } })) { _ in
+                        ZoneView(controller: model.zones, model: model, dark: surface.isDark, ground: surface.groundColor)
+                    }
+                    .sheet(isPresented: Binding(get: { model.zones.showList }, set: { model.zones.showList = $0 })) {
+                        ZoneListView(controller: model.zones).presentationDetents([.medium, .large])
+                    }
+                    #endif
             } else if let failure = model.failure {
                 ContentUnavailableView("Cannot open this PDF", systemImage: "exclamationmark.triangle", description: Text(failure))
             } else {

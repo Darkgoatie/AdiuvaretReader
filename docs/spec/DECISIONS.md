@@ -9,3 +9,4 @@
 | 005 | App Group for file sharing between own apps | only supported sandbox-safe route; same team ID |
 | 006 | Code viewing read-only, in-house tokenizer | keeps scope a reader; no dependency |
 | 007 | App Group is group.com.halit.adiuvaret, shared by the Adiuvaret chain of apps | name belongs to the apps that use it |
+| 008 | Zones are stored as fractions of the page as shown, in Zones/<book>.json, and what is written in them as ink in ZoneInk/<book>/<zone>.ink, apart from the library database and from file ink | a schema change must not lose writing; removing all ink from a file must not take zone writing with it; fractions survive zoom, device and rotation |

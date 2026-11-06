@@ -4,4 +4,5 @@ App Store Connect app 6824579270, bundle com.halit.adiuvaretreader (registered, 
 Built: library, EPUB/PDF/text/markdown/code readers, highlights, notes, bookmarks, search, appearance, assistant sheet (Apple Foundation Models), Files (folders, move, copy, rename, Recently Deleted, external folders), wallpapers.
 Not device-tested: all UI. Assistant needs Apple Intelligence.
 Open: App Group group.com.halit.adiuvaret not created, so entitlement is removed and Shared folder is hidden (task 19). App icon is a placeholder.
+Zones (task 21) are on branch zones for PDFs only, uncompiled and untested on a device; Markdown and other text formats have no zones yet.
 Next: user feedback from device; task 19 once the group exists; iPad layout polish (task 12), accessibility pass (task 13).

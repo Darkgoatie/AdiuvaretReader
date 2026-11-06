@@ -81,7 +81,7 @@ struct ReaderView: View {
         .onChange(of: session.inkActive) { _, on in
             web?.setInk(on)
             pdf?.setInk(on)
-            if on { session.clearSelection() }
+            if on { session.clearSelection(); pdf?.zones.marking = false }
         }
         .confirmationDialog("Remove all ink from this file?", isPresented: $confirmClearInk, titleVisibility: .visible) {
             Button("Remove ink", role: .destructive) {
@@ -154,6 +154,15 @@ struct ReaderView: View {
                 Button { session.showContents = true } label: { Label("Contents", systemImage: "list.bullet") }
             }
             Button { session.showSearch.toggle() } label: { Label("Search", systemImage: "magnifyingglass") }
+            if let pdf {
+                Button {
+                    session.inkActive = false
+                    pdf.zones.marking.toggle()
+                } label: {
+                    Label(pdf.zones.marking ? "Cancel marking" : "Mark a zone", systemImage: pdf.zones.marking ? "xmark.rectangle" : "rectangle.dashed")
+                }
+                .accessibilityLabel(pdf.zones.marking ? "Cancel marking a zone" : "Mark a zone to write in")
+            }
             if session.inkSupported {
                 Button { session.inkActive.toggle() } label: {
                     Label(session.inkActive ? "Done drawing" : "Draw", systemImage: session.inkActive ? "checkmark.circle.fill" : "pencil.tip.crop.circle")
@@ -169,6 +178,9 @@ struct ReaderView: View {
                 Button { session.showSettings = true } label: { Label("Appearance", systemImage: "textformat.size") }
                 if book.format == .markdown {
                     Button { showBacklinks = true } label: { Label("Linked from", systemImage: "link") }
+                }
+                if let pdf, pdf.zones.hasZones {
+                    Button { pdf.zones.showList = true } label: { Label("Zones", systemImage: "list.bullet.rectangle") }
                 }
                 if session.hasInk {
                     Button(role: .destructive) { confirmClearInk = true } label: { Label("Remove all ink", systemImage: "eraser") }
