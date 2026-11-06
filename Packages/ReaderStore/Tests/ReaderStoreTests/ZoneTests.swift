@@ -1,5 +1,8 @@
 import Testing
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 @testable import ReaderStore
 
 @Suite struct ZoneTests {

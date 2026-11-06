@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(CoreGraphics)
+import CoreGraphics
+#endif
 
 /// A marked part of a page, as fractions of the page as it is shown: upright, from the top left, after the page's own rotation.
 /// Fractions stay right at any zoom, on any device and for any page size.
@@ -44,10 +47,12 @@ public struct ZoneRect: Codable, Equatable, Sendable {
     /// Inside the page and not smaller than the minimum. A saved file that fails this is dropped on load.
     public var isValid: Bool {
         let slack = 1e-6
-        return [x, y, width, height].allSatisfy { $0.isFinite }
-            && x >= -slack && y >= -slack
-            && width >= Self.minimumSide - slack && height >= Self.minimumSide - slack
-            && x + width <= 1 + slack && y + height <= 1 + slack
+        let values: [Double] = [x, y, width, height]
+        guard values.allSatisfy({ $0.isFinite }) else { return false }
+        let origin = x >= -slack && y >= -slack
+        let size = width >= Self.minimumSide - slack && height >= Self.minimumSide - slack
+        let inside = x + width <= 1 + slack && y + height <= 1 + slack
+        return origin && size && inside
     }
 }
 
